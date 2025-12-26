@@ -22,8 +22,15 @@
 
   <header class="site-header">
     <div class="container header-inner">
-      <h1 class="site-title">Kelly's Candles</h1>
-      <p class="tagline">Hand‑Poured Farm Candles</p>
+      <div class="brand">
+        <h1 class="site-title">Kelly's Candles</h1>
+        <p class="tagline">Hand‑Poured Farm Candles</p>
+      </div>
+      <nav class="nav">
+        <a href="#about">About</a>
+        <a href="#inventory-area">Products</a>
+        <button id="cart-btn" class="cart-btn" aria-haspopup="dialog" aria-controls="cart-panel">Cart (<span id="cart-count">0</span>)</button>
+      </nav>
     </div>
   </header>
 
@@ -41,6 +48,49 @@
       <div id="csv-debug" class="status hidden">CSV URL: <a id="csv-link" href="#" target="_blank" rel="noopener">Open CSV</a></div>
     </section>
   </main>
+
+  <!-- Cart overlay / panel -->
+  <div id="cart-overlay" class="cart-overlay hidden" tabindex="-1"></div>
+  <aside id="cart-panel" class="cart-panel hidden" role="dialog" aria-label="Shopping cart">
+    <header class="cart-header">
+      <h3>Your Cart</h3>
+      <button id="cart-close" class="cart-close" aria-label="Close cart">✕</button>
+    </header>
+    <div id="cart-items" class="cart-items">
+      <!-- items rendered here -->
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total">Total: <span id="cart-total">$0.00</span></div>
+      <form id="checkout-form" class="checkout-form">
+        <label>Name <input name="name" required></label>
+        <label>Phone <input name="phone" required placeholder="(555) 012-3456"></label>
+        <label>Fulfillment
+          <select name="fulfillment" id="fulfillment-select">
+            <option value="Pickup">Local Pickup</option>
+            <option value="Shipping">Shipping</option>
+          </select>
+        </label>
+
+        <div id="address-field" class="hidden">
+          <label>Shipping address <input name="address" placeholder="Street, City, State, ZIP"></label>
+        </div>
+        <label>Payment type
+          <select name="payment">
+            <option value="Cash">Cash</option>
+            <option value="PayPal">PayPal</option>
+            <option value="Venmo">Venmo</option>
+          </select>
+        </label>
+        <label>Payment username (PayPal/Venmo) <input name="payment_user" placeholder="@username or email"></label>
+        <label>Any comments <textarea name="comments" rows="3" placeholder="Additional notes or requests"></textarea></label>
+        <div class="checkout-actions">
+          <button type="button" id="copy-order" class="btn small">Copy Order</button>
+          <button type="submit" class="btn">Request Order</button>
+        </div>
+        <div id="checkout-msg" class="status hidden"></div>
+      </form>
+    </div>
+  </aside>
 
   <footer class="site-footer">
     <div class="container">

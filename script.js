@@ -106,11 +106,14 @@ function createCard(item) {
 	const price = item['price'] || item['Price'] || '';
 	const quantity = item['quantity'] || item['Quantity'] || '';
 
+	// Add data attributes so the cart logic can pick up item details
 	el.innerHTML = `
 		<h3 class="product-name">${escapeHtml(name)}</h3>
 		<p class="desc">${escapeHtml(scent)} • ${escapeHtml(size)}</p>
 		<div class="meta-row"><span class="price">${escapeHtml(price)}</span><span>Qty: ${escapeHtml(quantity)}</span></div>
-		<button class="btn" disabled>Contact to Order</button>
+		<div style="margin-top:8px">
+			<button class="btn add-to-cart" data-name="${escapeHtml(name)}" data-price="${escapeHtml(price)}" data-size="${escapeHtml(size)}" data-scent="${escapeHtml(scent)}">Add to Cart</button>
+		</div>
 	`;
 	return el;
 }
@@ -176,6 +179,266 @@ document.addEventListener('DOMContentLoaded', function () {
 	const yearEl = document.getElementById('year');
 	if (yearEl) yearEl.textContent = new Date().getFullYear();
 	loadInventory();
+	initCartUI();
 });
+
+/* CART LOGIC */
+const CART_KEY = 'kellys_cart_v1';
+function getCart(){
+	try{ return JSON.parse(localStorage.getItem(CART_KEY)) || []; }catch(e){ return []; }
+}
+function saveCart(c){ localStorage.setItem(CART_KEY, JSON.stringify(c)); renderCart(); }
+function addToCart(item){
+	const cart = getCart();
+	// merge by name + size
+	const idx = cart.findIndex(i => i.name === item.name && i.size === item.size);
+	if (idx >= 0) cart[idx].qty = (Number(cart[idx].qty)||0) + (Number(item.qty)||1);
+	else cart.push({ ...item, qty: Number(item.qty)||1 });
+	saveCart(cart);
+}
+function removeFromCart(index){ const cart = getCart(); cart.splice(index,1); saveCart(cart); }
+function updateQty(index, qty){ const cart = getCart(); cart[index].qty = Number(qty)||1; saveCart(cart); }
+
+function initCartUI(){
+	// open/close handlers
+	const cartBtn = document.getElementById('cart-btn');
+	const cartOverlay = document.getElementById('cart-overlay');
+	const cartPanel = document.getElementById('cart-panel');
+	const cartClose = document.getElementById('cart-close');
+	cartBtn && cartBtn.addEventListener('click', () => { cartOverlay.classList.remove('hidden'); cartPanel.classList.remove('hidden'); renderCart(); });
+	cartClose && cartClose.addEventListener('click', () => { cartOverlay.classList.add('hidden'); cartPanel.classList.add('hidden'); });
+	cartOverlay && cartOverlay.addEventListener('click', () => { cartOverlay.classList.add('hidden'); cartPanel.classList.add('hidden'); });
+
+	// delegation for add-to-cart buttons (inventory is dynamic)
+	document.body.addEventListener('click', function(e){
+		if (e.target && e.target.matches('.add-to-cart')){
+			const b = e.target;
+			const item = { name:b.dataset.name||'', price:b.dataset.price||'', size:b.dataset.size||'', scent:b.dataset.scent||'', qty:1 };
+			addToCart(item);
+			// brief feedback
+			b.textContent = 'Added'; setTimeout(()=> b.textContent = 'Add to Cart',900);
+		}
+	});
+
+	// checkout form handlers
+	const checkoutForm = document.getElementById('checkout-form');
+	if (checkoutForm) checkoutForm.addEventListener('submit', handleCheckout);
+	const copyBtn = document.getElementById('copy-order');
+	if (copyBtn) copyBtn.addEventListener('click', copyOrderToClipboard);
+
+	// Show/hide address field when fulfillment type changes
+	const fulfillmentSelect = document.getElementById('fulfillment-select');
+	const addressField = document.getElementById('address-field');
+	if (fulfillmentSelect && addressField){
+		function toggleAddress(){
+			if (fulfillmentSelect.value === 'Shipping') addressField.classList.remove('hidden');
+			else addressField.classList.add('hidden');
+		}
+		fulfillmentSelect.addEventListener('change', toggleAddress);
+		// initialize
+		toggleAddress();
+	}
+}
+
+function renderCart(){
+	const cart = getCart();
+	const cartItems = document.getElementById('cart-items');
+	const cartCount = document.getElementById('cart-count');
+	const cartTotal = document.getElementById('cart-total');
+	cartItems.innerHTML = '';
+	let total = 0;
+	cart.forEach((it, idx) =>{
+		const priceNum = parseFloat(String(it.price||'').replace(/[^0-9\.\-]/g,'')) || 0;
+		total += priceNum * (Number(it.qty)||1);
+		const div = document.createElement('div'); div.className='cart-item';
+		div.innerHTML = `<div>
+			<div class="product-name">${escapeHtml(it.name)}</div>
+			<div class="meta">${escapeHtml(it.scent)} • ${escapeHtml(it.size)}</div>
+		</div>
+		<div>
+			<div style="text-align:right">${escapeHtml(it.price)}</div>
+			<div style="margin-top:6px; display:flex; gap:6px; align-items:center; justify-content:flex-end">
+				<input type="number" min="1" value="${escapeHtml(it.qty)}" data-idx="${idx}" class="qty-input" style="width:56px;padding:6px;border-radius:4px;border:1px solid rgba(0,0,0,0.08)">
+				<button data-idx="${idx}" class="btn small remove-btn">Remove</button>
+			</div>
+		</div>`;
+		cartItems.appendChild(div);
+	});
+	cartCount.textContent = cart.reduce((s,i)=>s+Number(i.qty||0),0);
+	cartTotal.textContent = '$' + total.toFixed(2);
+
+	// attach qty and remove handlers
+	cartItems.querySelectorAll('.qty-input').forEach(inp=> inp.addEventListener('change', (e)=> updateQty(Number(e.target.dataset.idx), Number(e.target.value) || 1)));
+	cartItems.querySelectorAll('.remove-btn').forEach(b => b.addEventListener('click', (e)=> removeFromCart(Number(e.target.dataset.idx))));
+}
+
+function buildOrderText(formData){
+	const cart = getCart();
+	let lines = [];
+	lines.push(`Order from Kelly's Candles`);
+	lines.push('');
+	lines.push('Items:');
+	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.name} (${it.size}) — ${it.price}`); });
+	lines.push('');
+	lines.push('Customer:');
+	lines.push(`Name: ${formData.get('name') || ''}`);
+	lines.push(`Phone: ${formData.get('phone') || ''}`);
+	lines.push(`Address: ${formData.get('address') || ''}`);
+	lines.push(`Fulfillment: ${formData.get('fulfillment') || ''}`);
+	lines.push(`Payment: ${formData.get('payment') || ''}`);
+	lines.push(`Payment user: ${formData.get('payment_user') || ''}`);
+	lines.push('');
+	lines.push('Comments:');
+	lines.push(formData.get('comments') || '');
+	return lines.join('\n');
+}
+
+/*
+ 	GOOGLE FORM SETTINGS
+ 	- Set `GOOGLE_FORM_BASE` to your Google Form URL (the base view URL, e.g.
+ 		https://docs.google.com/forms/d/e/FORM_ID/viewform)
+ 	- Fill `GOOGLE_FORM_FIELDS` mapping with your form's entry IDs, e.g.:
+ 		{ name: 'entry.123456', phone: 'entry.234567', fulfillment: 'entry.345678', payment: 'entry.456789', payment_user: 'entry.567890', comments: 'entry.678901' }
+ 	- To get entry IDs: open your Google Form, click the three dots → Get pre-filled link,
+ 		fill example values, then click Get link and inspect the URL's query params (entry.xxxxxx).
+ 	- The script uses `URL` and `URLSearchParams` to build a safe prefilled URL.
+*/
+const GOOGLE_FORM_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLScE5Weub9BdFMp6sQwF9CrLj0ZWlswu5yHQZ3dsPiHS4Y-COg/viewform';
+const GOOGLE_FORM_FIELDS = {
+ 	name: 'entry.549297552',
+ 	phone: 'entry.722865220',
+ 	fulfillment: 'entry.673908643',
+ 	address: 'entry.1385294730',
+ 	payment: 'entry.1996077415',
+ 	payment_user: 'entry.1793976992',
+ 	comments: 'entry.352595684'
+};
+
+/*
+ 	Generate a printable HTML order summary and open print dialog.
+ 	This produces a formatted HTML page the user can print or save as PDF.
+*/
+function buildOrderHtml(formData){
+ 	const cart = getCart();
+ 	let total = 0;
+ 	const rows = cart.map(it => {
+ 		const priceNum = parseFloat(String(it.price||'').replace(/[^0-9\.\-]/g,'')) || 0;
+ 		total += priceNum * (Number(it.qty)||1);
+ 		return `<tr>
+ 			<td>${escapeHtml(it.name)}</td>
+ 			<td>${escapeHtml(it.size)}</td>
+ 			<td>${escapeHtml(it.qty)}</td>
+ 			<td style="text-align:right">${escapeHtml(it.price)}</td>
+ 		</tr>`;
+ 	}).join('');
+
+ 	const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kelly's Candles Order</title>
+ 	<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+ 	<style>
+ 	body{ font-family: Lora, serif; margin:20px; color:#3b2f2f; background:#fff; }
+ 	.header{ border-bottom:4px solid rgba(0,0,0,0.06); padding-bottom:10px; margin-bottom:12px; }
+ 	.h1{ font-family: 'Playfair Display', serif; font-size:22px; color:#8b5a2b; margin:0; }
+ 	.meta{ color:#6b6b6b; margin-top:6px; }
+ 	table{ width:100%; border-collapse:collapse; margin-top:12px; }
+ 	td,th{ padding:6px 8px; border-bottom:1px solid #eee; }
+ 	.total{ text-align:right; font-weight:700; margin-top:10px; }
+ 	.box{ background:#fbf8f4; padding:10px; border-radius:6px; border:1px solid rgba(0,0,0,0.04); }
+ 	</style>
+ 	</head><body>
+ 	<div class="header">
+ 	  <div class="h1">Kelly's Candles — Order Summary</div>
+ 	  <div class="meta">Generated: ${new Date().toLocaleString()}</div>
+ 	</div>
+
+ 	<div class="box">
+ 	  <h4>Items</h4>
+ 	  <table>
+ 	    <thead><tr><th>Product</th><th>Size</th><th>Qty</th><th style="text-align:right">Price</th></tr></thead>
+ 	    <tbody>
+ 	      ${rows || '<tr><td colspan="4">No items</td></tr>'}
+ 	    </tbody>
+ 	  </table>
+ 	  <div class="total">Total: $${total.toFixed(2)}</div>
+ 	</div>
+
+ 	<div style="height:12px"></div>
+ 	<div class="box">
+ 	  <h4>Customer</h4>
+ 	  <p><strong>Name:</strong> ${escapeHtml(formData.get('name') || '')}</p>
+ 	  <p><strong>Phone:</strong> ${escapeHtml(formData.get('phone') || '')}</p>
+ 	  <p><strong>Address:</strong> ${escapeHtml(formData.get('address') || '')}</p>
+ 	  <p><strong>Fulfillment:</strong> ${escapeHtml(formData.get('fulfillment') || '')}</p>
+ 	  <p><strong>Payment:</strong> ${escapeHtml(formData.get('payment') || '')} ${escapeHtml(formData.get('payment_user') || '')}</p>
+ 	  <p><strong>Comments:</strong> ${escapeHtml(formData.get('comments') || '')}</p>
+ 	</div>
+
+ 	</body></html>`;
+ 	return html;
+}
+
+function openOrderPrintWindow(orderHtml){
+ 	const w = window.open('', '_blank');
+ 	if (!w) return false;
+ 	w.document.open();
+ 	w.document.write(orderHtml);
+ 	w.document.close();
+ 	// wait for fonts/resources then print
+ 	w.onload = () => {
+ 		try{ w.focus(); w.print(); }catch(e){}
+ 		// optional: close after printing
+ 		setTimeout(()=>{ /* w.close(); */ }, 1000);
+ 	};
+ 	return true;
+}
+
+function buildPrefillUrl(formData){
+ 	if (!GOOGLE_FORM_BASE) return null;
+ 	try{
+ 		const u = new URL(GOOGLE_FORM_BASE);
+ 		const params = new URLSearchParams(u.search);
+ 		// set each mapped field if present
+ 		if (GOOGLE_FORM_FIELDS.name) params.set(GOOGLE_FORM_FIELDS.name, formData.get('name') || '');
+ 		if (GOOGLE_FORM_FIELDS.phone) params.set(GOOGLE_FORM_FIELDS.phone, formData.get('phone') || '');
+ 		if (GOOGLE_FORM_FIELDS.fulfillment) params.set(GOOGLE_FORM_FIELDS.fulfillment, formData.get('fulfillment') || '');
+		if (GOOGLE_FORM_FIELDS.address) params.set(GOOGLE_FORM_FIELDS.address, formData.get('address') || '');
+ 		if (GOOGLE_FORM_FIELDS.payment) params.set(GOOGLE_FORM_FIELDS.payment, formData.get('payment') || '');
+ 		if (GOOGLE_FORM_FIELDS.payment_user) params.set(GOOGLE_FORM_FIELDS.payment_user, formData.get('payment_user') || '');
+		if (GOOGLE_FORM_FIELDS.comments) params.set(GOOGLE_FORM_FIELDS.comments, formData.get('comments') || '');
+ 		u.search = params.toString();
+ 		return u.toString();
+ 	}catch(e){ return null; }
+}
+
+async function handleCheckout(e){
+ 	e.preventDefault();
+ 	const form = e.target;
+ 	const fd = new FormData(form);
+ 	// basic validation: require name and phone
+ 	if (!fd.get('name') || !fd.get('phone')){
+ 		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent='Please provide name and phone.'; return;
+ 	}
+
+ 	// Build printable HTML order summary and open print dialog (user can Save as PDF)
+ 	const orderHtml = buildOrderHtml(fd);
+ 	const opened = openOrderPrintWindow(orderHtml);
+
+ 	// Build pre-filled Google Form URL and open in new tab for farmer submission
+ 	const formUrl = buildPrefillUrl(fd);
+ 	if (formUrl) {
+ 		window.open(formUrl, '_blank', 'noopener');
+ 		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = opened ? 'Order prepared and print dialog opened; Google Form opened in a new tab.' : 'Order prepared; Google Form opened in a new tab.';
+ 	} else {
+ 		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = opened ? 'Order prepared and print dialog opened.' : 'Order prepared.';
+ 	}
+}
+
+function copyOrderToClipboard(){
+	const form = document.getElementById('checkout-form');
+	const fd = new FormData(form);
+	const orderText = buildOrderText(fd);
+	navigator.clipboard.writeText(orderText).then(()=>{
+		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard — paste into email or message.';
+	});
+}
 
 
