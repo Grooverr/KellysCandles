@@ -12,7 +12,7 @@
   --muted-green: #7a8d79;
   --text: #3b2f2f;
   --site-title-size: 26px;
-  --site-image-height: 120px;
+  --site-image-height: 72px;
 }
 
 html, body { height: 100%; }
@@ -132,11 +132,11 @@ body{
 
 @media (min-width:700px){
   .header-inner{ flex-direction:row; align-items:center; justify-content:space-between; }
-  :root{ --site-title-size:34px; --site-image-height:160px; }
+  :root{ --site-title-size:34px; --site-image-height:110px; }
 }
 
 @media (max-width:520px){
-  :root{ --site-image-height:90px; }
+  :root{ --site-image-height:56px; }
 }
 
 
