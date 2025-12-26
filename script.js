@@ -96,6 +96,32 @@ function filterAvailable(items) {
 	});
 }
 
+// In-memory cache of available items for filtering
+let AVAILABLE_ITEMS = [];
+
+function normalizeSize(s){
+	if (!s) return '';
+	return String(s).toLowerCase().replace(/\s+/g,'');
+}
+
+function renderAvailable(){
+	const inventory = document.getElementById('inventory');
+	if (!inventory) return;
+	inventory.innerHTML = '';
+	const active = document.querySelector('.filter-btn.active');
+	const filter = active ? (active.dataset.size || '') : '';
+	const items = (AVAILABLE_ITEMS || []).filter(it => {
+		if (!filter) return true;
+		const sz = normalizeSize(it['size'] || it['Size'] || '');
+		return sz === filter || sz.includes(filter);
+	});
+	if (items.length === 0){
+		inventory.innerHTML = '<div class="status">No items match that filter.</div>';
+		return;
+	}
+	items.forEach(item => inventory.appendChild(createCard(item)));
+}
+
 function createCard(item) {
 	const el = document.createElement('article');
 	el.className = 'card';
@@ -154,9 +180,11 @@ async function loadInventory() {
 			return;
 		}
 
-		available.forEach(item => inventory.appendChild(createCard(item)));
+		// cache available items and render respecting active filter
+		AVAILABLE_ITEMS = available;
 		loading.classList.add('hidden');
 		inventory.classList.remove('hidden');
+		renderAvailable();
 		// hide debug link on success
 		const csvDebug = document.getElementById('csv-debug');
 		if (csvDebug) csvDebug.classList.add('hidden');
@@ -180,6 +208,13 @@ document.addEventListener('DOMContentLoaded', function () {
 	if (yearEl) yearEl.textContent = new Date().getFullYear();
 	loadInventory();
 	initCartUI();
+
+	// Reveal homepage image if the user has set a src attribute in index.html
+	const siteImg = document.getElementById('site-image');
+	if (siteImg) {
+		const srcAttr = siteImg.getAttribute('src');
+		if (srcAttr && srcAttr.trim() !== '') siteImg.style.display = 'block';
+	}
 });
 
 /* CART LOGIC */
@@ -237,6 +272,16 @@ function initCartUI(){
 		fulfillmentSelect.addEventListener('change', toggleAddress);
 		// initialize
 		toggleAddress();
+	}
+
+	// Inventory filter buttons
+	const filterBtns = document.querySelectorAll('.filter-btn');
+	if (filterBtns && filterBtns.length){
+		filterBtns.forEach(b=> b.addEventListener('click', (e)=>{
+			filterBtns.forEach(x=> x.classList.remove('active'));
+			b.classList.add('active');
+			renderAvailable();
+		}));
 	}
 }
 

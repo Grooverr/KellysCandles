@@ -24,6 +24,10 @@
     <div class="container header-inner">
       <div class="brand">
         <h1 class="site-title">Kelley's Candles</h1>
+        <!-- Homepage image placed below the title -->
+        <div class="homepage-image">
+          <img id="site-image" src="Images/Farm%20background.jpg" alt="Farm background" class="site-image">
+        </div>
         <p class="tagline">Hand‑Poured Farm Candles</p>
       </div>
       <nav class="nav">
@@ -37,12 +41,18 @@
   <main class="container">
     <section id="about" class="about">
       <h2>About</h2>
-      <p class="lead">Kelley's Candles crafts small-batch, hand‑poured farm candles using natural waxes and thoughtfully blended scents. Each batch is made by hand on the farm — scent availability varies by season. Local pickup and nationwide shipping options are available; please choose your preference at checkout.</p>
+      <p class="lead">Kelley's Candles crafts small batch, hand‑poured farm candles using natural waxes and thoughtfully blended scents. Each batch is made by hand on the farm. Scent availability varies by season. Local pickup and nationwide shipping options are available; please choose your preference at checkout.</p>
     </section>
 
     <section class="inventory-intro">
       <h2>Current Inventory</h2>
       <p class="lead">Below are candles we have available — quantities update automatically from the Google Sheet.</p>
+      <div class="filters" aria-label="Inventory filters">
+        <span>Filter by size:</span>
+        <button class="btn small filter-btn active" data-size="">All</button>
+        <button class="btn small filter-btn" data-size="12oz">12oz</button>
+        <button class="btn small filter-btn" data-size="6oz">6oz</button>
+      </div>
     </section>
 
     <section id="inventory-area">

@@ -11,6 +11,8 @@
   --wood: #b88a56;
   --muted-green: #7a8d79;
   --text: #3b2f2f;
+  --site-title-size: 26px;
+  --site-image-height: 120px;
 }
 
 html, body { height: 100%; }
@@ -46,15 +48,20 @@ body{
 .site-title{
   margin:0;
   font-family: 'Playfair Display', serif;
-  font-size:26px;
+  font-size:var(--site-title-size);
   letter-spacing:0.6px;
   color:var(--soft-brown);
 }
+.brand{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
 .tagline{
   margin:0;
   color:var(--muted-green);
   font-size:14px;
 }
+
+/* Homepage image */
+.homepage-image{ margin-top:12px; }
+.site-image{ max-width:100%; border-radius:8px; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.06); height: var(--site-image-height); width:auto; object-fit:cover; }
 
 /* Navigation */
 .nav{ display:flex; gap:12px; align-items:center; }
@@ -66,6 +73,10 @@ body{
 /* Inventory intro */
 .inventory-intro{ padding:18px 0 6px 0; }
 .lead{ margin:6px 0 0 0; color:#555; }
+
+/* Filters */
+.filters{ margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.filter-btn.active{ box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08); }
 
 /* Inventory grid and cards */
 .product-grid{
@@ -121,7 +132,11 @@ body{
 
 @media (min-width:700px){
   .header-inner{ flex-direction:row; align-items:center; justify-content:space-between; }
-  .site-title{ font-size:34px; }
+  :root{ --site-title-size:34px; --site-image-height:160px; }
+}
+
+@media (max-width:520px){
+  :root{ --site-image-height:90px; }
 }
 
 
