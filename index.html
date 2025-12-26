@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kelly's Candles — Inventory</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!--
+    Kelly's Candles - Inventory Display
+
+    How the Google Sheets connection works (brief):
+    - Publish your Google Sheet to the web (File → Publish to the web).
+    - Use the published URL and convert it to the CSV endpoint by replacing
+      "/pubhtml" with "/pub?output=csv" and keeping the same gid parameter.
+    - This site fetches that CSV URL with `fetch()` and parses rows into objects.
+
+    IMPORTANT: Do not publish sensitive data. The published sheet becomes public.
+  -->
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1 class="site-title">Kelly's Candles</h1>
+      <p class="tagline">Hand‑Poured Farm Candles</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="inventory-intro">
+      <h2>Current Inventory</h2>
+      <p class="lead">Below are candles we have available — quantities update automatically from the Google Sheet.</p>
+    </section>
+
+    <section id="inventory-area">
+      <!-- Loading / error / items will be inserted here by script.js -->
+      <div id="loading" class="status">Loading inventory…</div>
+      <div id="error" class="status hidden"></div>
+      <div id="inventory" class="product-grid hidden" aria-live="polite"></div>
+      <div id="csv-debug" class="status hidden">CSV URL: <a id="csv-link" href="#" target="_blank" rel="noopener">Open CSV</a></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="year"></span> Kelly's Candles — Handmade on the farm</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
