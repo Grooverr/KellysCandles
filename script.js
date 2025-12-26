@@ -1,5 +1,5 @@
 // script.js
-// Inventory fetcher and renderer for Kelly's Candles (static, no backend)
+// Inventory fetcher and renderer for Kelley's Candles (static, no backend)
 // Comments explain how the Google Sheets connection works and how to customize.
 
 /*
@@ -275,7 +275,7 @@ function renderCart(){
 function buildOrderText(formData){
 	const cart = getCart();
 	let lines = [];
-	lines.push(`Order from Kelly's Candles`);
+	lines.push(`Order from Kelley's Candles`);
 	lines.push('');
 	lines.push('Items:');
 	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.name} (${it.size}) — ${it.price}`); });
@@ -332,7 +332,7 @@ function buildOrderHtml(formData){
  		</tr>`;
  	}).join('');
 
- 	const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kelly's Candles Order</title>
+	const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kelley's Candles Order</title>
  	<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
  	<style>
  	body{ font-family: Lora, serif; margin:20px; color:#3b2f2f; background:#fff; }
@@ -346,7 +346,7 @@ function buildOrderHtml(formData){
  	</style>
  	</head><body>
  	<div class="header">
- 	  <div class="h1">Kelly's Candles — Order Summary</div>
+	<div class="h1">Kelley's Candles — Order Summary</div>
  	  <div class="meta">Generated: ${new Date().toLocaleString()}</div>
  	</div>
 
