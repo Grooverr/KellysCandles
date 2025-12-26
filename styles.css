@@ -61,7 +61,7 @@ body{
 
 /* Homepage image */
 .homepage-image{ margin-top:12px; }
-.site-image{ max-width:100%; border-radius:8px; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.06); height: var(--site-image-height); width:auto; object-fit:cover; }
+.site-image{ max-width:30%; border-radius:8px; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.06); height: var(--site-image-height); width:auto; object-fit:cover; }
 
 /* Navigation */
 .nav{ display:flex; gap:12px; align-items:center; }
