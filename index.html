@@ -43,6 +43,14 @@
       <h2>About</h2>
       <p class="lead">Kelley's Candles crafts small batch, hand‑poured farm candles using natural waxes and thoughtfully blended scents. Each batch is made by hand on the farm. Scent availability varies by season. Local pickup and nationwide shipping options are available; please choose your preference at checkout.</p>
     </section>
+<!-- Customer Reviews Section - currently commented out
+
+    <section class="social-proof">
+      <h3>Loved by Our Customers</h3>
+      <p class="social-text">“Hand-poured candles enjoyed by customers across our community.”</p>
+    </section>
+
+-->
 
     <section class="inventory-intro">
       <h2>Current Inventory</h2>
@@ -71,47 +79,79 @@
       <h3>Your Cart</h3>
       <button id="cart-close" class="cart-close" aria-label="Close cart">✕</button>
     </header>
-    <div id="cart-items" class="cart-items">
-      <!-- items rendered here -->
-    </div>
-    <div class="cart-footer">
-      <div class="cart-total">Total: <span id="cart-total">$0.00</span></div>
-      <form id="checkout-form" class="checkout-form">
-        <label>Name <input name="name" required></label>
-        <label>Phone <input name="phone" required placeholder="(555) 012-3456"></label>
-        <label>Fulfillment
-          <select name="fulfillment" id="fulfillment-select">
-            <option value="Pickup">Local Pickup</option>
-            <option value="Shipping">Shipping</option>
-          </select>
-        </label>
+    <div class="cart-content">
+      <div id="cart-items" class="cart-items">
+        <!-- items rendered here -->
+      </div>
+      <div class="cart-footer">
+        <div class="cart-total">Total: <span id="cart-total">$0.00</span></div>
+        <section id="order" class="form-section">
+          <div class="container">
+            <h2>Request an Order</h2>
+            <p class="form-intro">Submit the form below and we'll follow up by email.</p>
 
-        <div id="address-field" class="hidden">
-          <label>Shipping address <input name="address" placeholder="Street, City, State, ZIP"></label>
-        </div>
-        <label>Payment type
-          <select name="payment">
-            <option value="Cash">Cash</option>
-            <option value="PayPal">PayPal</option>
-            <option value="Venmo">Venmo</option>
-          </select>
-        </label>
-        <label>Payment username (PayPal/Venmo) <input name="payment_user" placeholder="@username or email"></label>
-        <label>Any comments <textarea name="comments" rows="3" placeholder="Additional notes or requests"></textarea></label>
-        <div class="checkout-actions">
-          <button type="button" id="copy-order" class="btn small">Copy Order</button>
-          <button type="submit" class="btn">Request Order</button>
-        </div>
-        <div id="checkout-msg" class="status hidden"></div>
-      </form>
+            <p class="form-note">
+              Thanks for supporting Kelley's Candles! After you submit your order request,
+              you'll see a confirmation message. We'll follow up by email as soon as possible.
+            </p>
+
+            <p id="order-form-helper" class="form-helper">Your cart items are automatically included below. Please do not edit the Order Details field.</p>
+            <p id="order-form-empty" class="form-empty hidden">Add items to your cart first.</p>
+            <div class="form-card">
+              <iframe
+                id="order-form-frame"
+                src="https://docs.google.com/forms/d/e/1FAIpQLScE5Weub9BdFMp6sQwF9CrLj0ZWlswu5yHQZ3dsPiHS4Y-COg/viewform?usp=pp_url&embedded=true"
+                title="Kelley's Candles order request form"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
+            <p class="form-followup">After submitting, you may return here: <a href="thank-you.html">Thank You page</a></p>
+
+            <section id="what-to-expect" class="what-to-expect">
+              <h3>What to Expect After Ordering</h3>
+              <ul>
+                <li>Orders are handcrafted in small batches and typically processed within 3–5 business days.</li>
+                <li>You will receive a confirmation email after submitting your order.</li>
+                <li>Tracking information will be sent once your order ships.</li>
+                <li>If you have questions at any time, you can contact us by email.</li>
+              </ul>
+            </section>
+          </div>
+        </section>
+      </div>
     </div>
   </aside>
 
   <footer class="site-footer">
     <div class="container">
       <p>&copy; <span id="year"></span> Kelley's Candles — Handmade on the farm</p>
+      <div class="footer-links">
+        <a href="privacy.html" class="privacy-link">Privacy Policy</a>
+        <a href="candle-care.html" class="care-link">Candle Care &amp; Safety</a>
+        <a href="terms.html" class="care-link">Terms of Service</a>
+      </div>
     </div>
   </footer>
+
+  <!-- Newsletter section -->
+  <section class="newsletter" aria-labelledby="newsletter-heading">
+    <div class="container">
+      <h3 id="newsletter-heading">Get Updates</h3>
+      <p class="newsletter-lead">Join our little farm list for light updates about new scents, small-batch releases, and market days.</p>
+      <form id="newsletter-form" class="newsletter-form" novalidate>
+        <div class="input-row">
+          <input id="newsletter-email" name="email" type="email" placeholder="Your email address" required />
+          <button id="newsletter-submit" class="btn">Sign Up</button>
+        </div>
+        <div class="newsletter-actions">
+          <small class="privacy">No spam. Unsubscribe anytime.</small>
+          <button id="download-signups" class="btn small admin-only" type="button" style="display:none">Download signups.csv</button>
+        </div>
+        <div id="newsletter-msg" class="status hidden" aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
 
   <script src="script.js"></script>
 </body>

@@ -41,6 +41,29 @@ function toCsvUrl(pubHtmlUrl) {
 
 const SHEET_CSV_URL = toCsvUrl(SHEET_PUBLISHED_URL);
 
+/* NEWSLETTER CONFIGURATION
+	 - Set `NEWSLETTER_MODE` to 'local' or 'google'.
+		 'local' stores signups in localStorage (Option A).
+		 'google' will attempt to submit to a Google Form (Option B).
+	 - Toggle `NEWSLETTER_ADMIN` to true to enable the "Download signups.csv" button (admin-only).
+	 - If using Google Forms (Option B), paste your form action URL and entry name below.
+		 Example Form POST action URL (paste here):
+			 https://docs.google.com/forms/d/e/FORM_ID/formResponse
+		 Example entry name (paste here):
+			 entry.1234567890
+		 Also paste a view URL (for fallback prefill) if you want the fallback to open the form:
+			 https://docs.google.com/forms/d/e/FORM_ID/viewform
+*/
+const NEWSLETTER_MODE = 'google'; // 'local' or 'google'
+const NEWSLETTER_ADMIN = false; // set true to show download button
+
+// GOOGLE FORM CONFIG (Option B) - values provided from your form
+const FORM_ACTION_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc514sYDiILJduMgV5k6Cw-QsDCFh3k-ZyslkeEdlQoOlmOMQ/formResponse';
+const ENTRY_EMAIL_NAME = 'entry.36953508'; // email field entry id
+
+// LocalStorage key for signups
+const NEWSLETTER_KEY = 'kelleys_newsletter_signups_v1';
+
 // Simple CSV parser that handles quoted fields and commas inside quotes.
 function parseCsv(text) {
 	const rows = [];
@@ -153,6 +176,7 @@ async function loadInventory() {
 	const loading = document.getElementById('loading');
 	const error = document.getElementById('error');
 	const inventory = document.getElementById('inventory');
+	if (!loading || !error || !inventory) return;
 	loading.classList.remove('hidden');
 	error.classList.add('hidden');
 	inventory.classList.add('hidden');
@@ -215,10 +239,15 @@ document.addEventListener('DOMContentLoaded', function () {
 		const srcAttr = siteImg.getAttribute('src');
 		if (srcAttr && srcAttr.trim() !== '') siteImg.style.display = 'block';
 	}
+
+	// Initialize newsletter UI
+	initNewsletterUI();
 });
 
 /* CART LOGIC */
 const CART_KEY = 'kellys_cart_v1';
+const GOOGLE_FORM_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLScE5Weub9BdFMp6sQwF9CrLj0ZWlswu5yHQZ3dsPiHS4Y-COg/viewform?usp=pp_url';
+const ENTRY_ORDER_DETAILS = '1245959695';
 function getCart(){
 	try{ return JSON.parse(localStorage.getItem(CART_KEY)) || []; }catch(e){ return []; }
 }
@@ -240,9 +269,19 @@ function initCartUI(){
 	const cartOverlay = document.getElementById('cart-overlay');
 	const cartPanel = document.getElementById('cart-panel');
 	const cartClose = document.getElementById('cart-close');
-	cartBtn && cartBtn.addEventListener('click', () => { cartOverlay.classList.remove('hidden'); cartPanel.classList.remove('hidden'); renderCart(); });
-	cartClose && cartClose.addEventListener('click', () => { cartOverlay.classList.add('hidden'); cartPanel.classList.add('hidden'); });
-	cartOverlay && cartOverlay.addEventListener('click', () => { cartOverlay.classList.add('hidden'); cartPanel.classList.add('hidden'); });
+	cartBtn && cartBtn.addEventListener('click', () => {
+		cartOverlay.classList.remove('hidden');
+		cartPanel.classList.remove('hidden');
+		document.body.classList.add('cart-open');
+		renderCart();
+	});
+	function closeCart(){
+		cartOverlay.classList.add('hidden');
+		cartPanel.classList.add('hidden');
+		document.body.classList.remove('cart-open');
+	}
+	cartClose && cartClose.addEventListener('click', closeCart);
+	cartOverlay && cartOverlay.addEventListener('click', closeCart);
 
 	// delegation for add-to-cart buttons (inventory is dynamic)
 	document.body.addEventListener('click', function(e){
@@ -285,6 +324,145 @@ function initCartUI(){
 	}
 }
 
+/* Newsletter UI and behavior */
+function validateEmail(email){
+	if (!email) return false;
+	// basic email regex
+	const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	return re.test(String(email).toLowerCase());
+}
+
+function getLocalSignups(){
+	try{ return JSON.parse(localStorage.getItem(NEWSLETTER_KEY)) || []; }catch(e){ return []; }
+}
+
+function saveLocalSignup(email){
+	const arr = getLocalSignups();
+	arr.push({ email: email, ts: new Date().toISOString() });
+	localStorage.setItem(NEWSLETTER_KEY, JSON.stringify(arr));
+}
+
+function downloadCsv(signups){
+	const header = ['email','timestamp'];
+	const rows = signups.map(s => [s.email, s.ts]);
+	const csv = [header.join(','), ...rows.map(r => r.map(c=> '"'+String(c).replace(/"/g,'""')+'"').join(','))].join('\n');
+	const blob = new Blob([csv], { type: 'text/csv' });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a'); a.href = url; a.download = 'newsletter_signups.csv'; document.body.appendChild(a); a.click(); a.remove();
+	setTimeout(()=> URL.revokeObjectURL(url), 5000);
+}
+
+async function submitToGoogleForm(email){
+	if (!FORM_ACTION_URL || !ENTRY_EMAIL_NAME) throw new Error('Google Form not configured');
+	const fd = new FormData();
+	fd.append(ENTRY_EMAIL_NAME, email);
+	try{
+		await fetch(FORM_ACTION_URL, { method:'POST', mode:'no-cors', body:fd });
+		return true;
+	}catch(e){
+		throw e;
+	}
+}
+
+function initNewsletterUI(){
+	const form = document.getElementById('newsletter-form');
+	if (!form) return;
+	const emailInput = document.getElementById('newsletter-email');
+	const submitBtn = document.getElementById('newsletter-submit');
+	const msg = document.getElementById('newsletter-msg');
+	const downloadBtn = document.getElementById('download-signups');
+
+	// show admin download button if enabled
+	if (NEWSLETTER_ADMIN && downloadBtn){ downloadBtn.style.display='inline-block'; }
+
+	if (downloadBtn){
+		downloadBtn.addEventListener('click', ()=>{
+			const signups = getLocalSignups();
+			downloadCsv(signups);
+		});
+	}
+
+	form.addEventListener('submit', async (e)=>{
+		e.preventDefault();
+		msg.classList.add('hidden'); msg.textContent='';
+		const email = (emailInput.value || '').trim();
+		if (!validateEmail(email)){
+			msg.classList.remove('hidden'); msg.textContent = 'Please enter a valid email.'; return;
+		}
+		submitBtn.disabled = true; submitBtn.textContent = 'Signing…';
+		try{
+			if (NEWSLETTER_MODE === 'local'){
+				saveLocalSignup(email);
+				msg.classList.remove('hidden'); msg.textContent = "Thanks! You're signed up.";
+			} else {
+				// google mode
+				try{
+					await submitToGoogleForm(email);
+					msg.classList.remove('hidden'); msg.textContent = "Thanks! You're signed up.";
+				}catch(err){
+					msg.classList.remove('hidden'); msg.textContent = 'Could not submit. Please try again.';
+				}
+			}
+			emailInput.value = '';
+		}catch(err){
+			msg.classList.remove('hidden'); msg.textContent = 'Error saving signup. Try again.';
+		}finally{
+			submitBtn.disabled = false; submitBtn.textContent = 'Sign Up';
+		}
+	});
+}
+
+function buildOrderSummary(cart){
+	let total = 0;
+	const lines = [];
+	lines.push("Kelley's Candles Order");
+	lines.push('----------------------');
+	cart.forEach(it => {
+		const priceNum = parseFloat(String(it.price||'').replace(/[^0-9\.\-]/g,'')) || 0;
+		const qty = Number(it.qty)||1;
+		const lineTotal = priceNum * qty;
+		total += lineTotal;
+		const variantParts = [it.scent, it.size].filter(Boolean);
+		const variant = variantParts.length ? variantParts.join(' • ') : '—';
+		lines.push(`Item: ${it.name || ''}`);
+		lines.push(`Variant/Size: ${variant}`);
+		lines.push(`Qty: ${qty}`);
+		lines.push(`Unit Price: $${priceNum.toFixed(2)}`);
+		lines.push(`Line Total: $${lineTotal.toFixed(2)}`);
+		lines.push('');
+	});
+	lines.push(`Total: $${total.toFixed(2)}`);
+	return lines.join('\n');
+}
+
+function buildPrefilledFormUrl(cart){
+	const summary = buildOrderSummary(cart);
+	const encodedSummary = encodeURIComponent(summary);
+	return `${GOOGLE_FORM_BASE}&entry.${ENTRY_ORDER_DETAILS}=${encodedSummary}&embedded=true`;
+}
+
+function updateOrderForm(cart){
+	const frame = document.getElementById('order-form-frame');
+	if (!frame) return;
+	const formCard = frame.closest('.form-card');
+	const helper = document.getElementById('order-form-helper');
+	const empty = document.getElementById('order-form-empty');
+	const followup = document.querySelector('.form-followup');
+	if (!cart || cart.length === 0){
+		if (formCard) formCard.classList.add('hidden');
+		if (helper) helper.classList.add('hidden');
+		if (followup) followup.classList.add('hidden');
+		if (empty) empty.classList.remove('hidden');
+		return;
+	}
+	if (formCard) formCard.classList.remove('hidden');
+	if (helper) helper.classList.remove('hidden');
+	if (followup) followup.classList.remove('hidden');
+	if (empty) empty.classList.add('hidden');
+	const formUrl = buildPrefilledFormUrl(cart);
+	if (frame.getAttribute('src') !== formUrl) frame.setAttribute('src', formUrl);
+}
+
 function renderCart(){
 	const cart = getCart();
 	const cartItems = document.getElementById('cart-items');
@@ -296,14 +474,14 @@ function renderCart(){
 		const priceNum = parseFloat(String(it.price||'').replace(/[^0-9\.\-]/g,'')) || 0;
 		total += priceNum * (Number(it.qty)||1);
 		const div = document.createElement('div'); div.className='cart-item';
-		div.innerHTML = `<div>
+		div.innerHTML = `<div class="cart-item-info">
 			<div class="product-name">${escapeHtml(it.name)}</div>
 			<div class="meta">${escapeHtml(it.scent)} • ${escapeHtml(it.size)}</div>
 		</div>
-		<div>
-			<div style="text-align:right">${escapeHtml(it.price)}</div>
-			<div style="margin-top:6px; display:flex; gap:6px; align-items:center; justify-content:flex-end">
-				<input type="number" min="1" value="${escapeHtml(it.qty)}" data-idx="${idx}" class="qty-input" style="width:56px;padding:6px;border-radius:4px;border:1px solid rgba(0,0,0,0.08)">
+		<div class="cart-item-actions">
+			<div class="item-price">${escapeHtml(it.price)}</div>
+			<div class="item-controls">
+				<input type="number" min="1" value="${escapeHtml(it.qty)}" data-idx="${idx}" class="qty-input">
 				<button data-idx="${idx}" class="btn small remove-btn">Remove</button>
 			</div>
 		</div>`;
@@ -311,6 +489,7 @@ function renderCart(){
 	});
 	cartCount.textContent = cart.reduce((s,i)=>s+Number(i.qty||0),0);
 	cartTotal.textContent = '$' + total.toFixed(2);
+	updateOrderForm(cart);
 
 	// attach qty and remove handlers
 	cartItems.querySelectorAll('.qty-input').forEach(inp=> inp.addEventListener('change', (e)=> updateQty(Number(e.target.dataset.idx), Number(e.target.value) || 1)));
@@ -348,7 +527,6 @@ function buildOrderText(formData){
  		fill example values, then click Get link and inspect the URL's query params (entry.xxxxxx).
  	- The script uses `URL` and `URLSearchParams` to build a safe prefilled URL.
 */
-const GOOGLE_FORM_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLScE5Weub9BdFMp6sQwF9CrLj0ZWlswu5yHQZ3dsPiHS4Y-COg/viewform';
 const GOOGLE_FORM_FIELDS = {
  	name: 'entry.549297552',
  	phone: 'entry.722865220',
@@ -485,5 +663,3 @@ function copyOrderToClipboard(){
 		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard — paste into email or message.';
 	});
 }
-
-
