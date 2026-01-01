@@ -274,6 +274,8 @@ function initCartUI(){
 		cartOverlay.classList.remove('hidden');
 		cartPanel.classList.remove('hidden');
 		document.body.classList.add('cart-open');
+		// Force refresh on open (fix iOS hidden-iframe behavior)
+		LAST_ORDER_SUMMARY = '';
 		renderCart();
 		setTimeout(() => updateOrderForm(getCart()), 150);
 	});
