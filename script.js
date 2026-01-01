@@ -274,10 +274,11 @@ function initCartUI(){
 		cartOverlay.classList.remove('hidden');
 		cartPanel.classList.remove('hidden');
 		document.body.classList.add('cart-open');
-		// Force refresh on open (fix iOS hidden-iframe behavior)
-		LAST_ORDER_SUMMARY = '';
 		renderCart();
-		setTimeout(() => updateOrderForm(getCart()), 150);
+		updateOrderForm(getCart(), true);
+		setTimeout(() => updateOrderForm(getCart(), true), 200);
+		setTimeout(() => updateOrderForm(getCart(), true), 600);
+		cartPanel.addEventListener('transitionend', () => updateOrderForm(getCart(), true), { once: true });
 	});
 	function closeCart(){
 		cartOverlay.classList.add('hidden');
@@ -444,7 +445,7 @@ function buildPrefilledFormUrlFromSummary(summary){
 	return `${GOOGLE_FORM_BASE}&entry.${ENTRY_ORDER_DETAILS}=${encodedSummary}&embedded=true&cachebust=${Date.now()}`;
 }
 
-function updateOrderForm(cart){
+function updateOrderForm(cart, force = false){
 	const frame = document.getElementById('order-form-frame');
 	if (!frame) return;
 	const formCard = frame.closest('.form-card');
@@ -463,9 +464,10 @@ function updateOrderForm(cart){
 	if (followup) followup.classList.remove('hidden');
 	if (empty) empty.classList.add('hidden');
 	const summary = buildOrderSummary(cart);
-	if (summary === LAST_ORDER_SUMMARY) return;
+	if (!force && summary === LAST_ORDER_SUMMARY) return;
 	LAST_ORDER_SUMMARY = summary;
-	frame.setAttribute('src', buildPrefilledFormUrlFromSummary(summary));
+	frame.setAttribute('src', 'about:blank');
+	setTimeout(() => frame.setAttribute('src', buildPrefilledFormUrlFromSummary(summary)), 0);
 }
 
 function renderCart(){
