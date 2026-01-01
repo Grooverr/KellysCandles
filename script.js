@@ -248,6 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
 const CART_KEY = 'kellys_cart_v1';
 const GOOGLE_FORM_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLScE5Weub9BdFMp6sQwF9CrLj0ZWlswu5yHQZ3dsPiHS4Y-COg/viewform?usp=pp_url';
 const ENTRY_ORDER_DETAILS = '1245959695';
+let LAST_ORDER_SUMMARY = '';
 function getCart(){
 	try{ return JSON.parse(localStorage.getItem(CART_KEY)) || []; }catch(e){ return []; }
 }
@@ -274,6 +275,7 @@ function initCartUI(){
 		cartPanel.classList.remove('hidden');
 		document.body.classList.add('cart-open');
 		renderCart();
+		setTimeout(() => updateOrderForm(getCart()), 150);
 	});
 	function closeCart(){
 		cartOverlay.classList.add('hidden');
@@ -435,10 +437,9 @@ function buildOrderSummary(cart){
 	return lines.join('\n');
 }
 
-function buildPrefilledFormUrl(cart){
-	const summary = buildOrderSummary(cart);
+function buildPrefilledFormUrlFromSummary(summary){
 	const encodedSummary = encodeURIComponent(summary);
-	return `${GOOGLE_FORM_BASE}&entry.${ENTRY_ORDER_DETAILS}=${encodedSummary}&embedded=true`;
+	return `${GOOGLE_FORM_BASE}&entry.${ENTRY_ORDER_DETAILS}=${encodedSummary}&embedded=true&cachebust=${Date.now()}`;
 }
 
 function updateOrderForm(cart){
@@ -459,8 +460,10 @@ function updateOrderForm(cart){
 	if (helper) helper.classList.remove('hidden');
 	if (followup) followup.classList.remove('hidden');
 	if (empty) empty.classList.add('hidden');
-	const formUrl = buildPrefilledFormUrl(cart);
-	if (frame.getAttribute('src') !== formUrl) frame.setAttribute('src', formUrl);
+	const summary = buildOrderSummary(cart);
+	if (summary === LAST_ORDER_SUMMARY) return;
+	LAST_ORDER_SUMMARY = summary;
+	frame.setAttribute('src', buildPrefilledFormUrlFromSummary(summary));
 }
 
 function renderCart(){
