@@ -242,6 +242,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Initialize newsletter UI
 	initNewsletterUI();
+
+	// Ensure order form is prefilling on load if cart has items
+	updateOrderForm(getCart());
 });
 
 /* CART LOGIC */
@@ -442,7 +445,7 @@ function buildPrefilledFormUrl(cart){
 }
 
 function updateOrderForm(cart){
-	const frame = document.getElementById('order-form-frame');
+	const frame = document.getElementById('orderFormFrame');
 	if (!frame) return;
 	const formCard = frame.closest('.form-card');
 	const helper = document.getElementById('order-form-helper');
@@ -459,8 +462,9 @@ function updateOrderForm(cart){
 	if (helper) helper.classList.remove('hidden');
 	if (followup) followup.classList.remove('hidden');
 	if (empty) empty.classList.add('hidden');
-	const formUrl = buildPrefilledFormUrl(cart);
-	if (frame.getAttribute('src') !== formUrl) frame.setAttribute('src', formUrl);
+	const formUrl = `${buildPrefilledFormUrl(cart)}&cachebust=${Date.now()}`;
+	frame.setAttribute('src', formUrl);
+	console.log('[orderForm] updated iframe src', frame.src);
 }
 
 function renderCart(){
