@@ -1,0 +1,7 @@
+{
+  "name": "kellys-candles-api",
+  "private": true,
+  "dependencies": {
+    "stripe": "^16.0.0"
+  }
+}
