@@ -227,11 +227,49 @@ async function loadInventory() {
 	}
 }
 
+const VERCEL_API_BASE = "https://kellyscandles-vercel-r8lnuhzq2-charles-hoskins-projects.vercel.app";
+
+async function payWithCard() {
+  const cart = getCart();
+  if (!cart.length) return alert("Your cart is empty.");
+
+  const msg = document.getElementById("pay-msg");
+  if (msg) {
+    msg.classList.remove("hidden");
+    msg.textContent = "Redirecting to secure checkout…";
+  }
+
+  const res = await fetch(`${VERCEL_API_BASE}/api/create-checkout-session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cart })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    if (msg) msg.textContent = data.error || "Checkout error.";
+    return;
+  }
+
+  window.location.href = data.url;
+}
+
+
+
+
+
+
+
 document.addEventListener('DOMContentLoaded', function () {
 	const yearEl = document.getElementById('year');
 	if (yearEl) yearEl.textContent = new Date().getFullYear();
 	loadInventory();
 	initCartUI();
+
+    // Stripe checkout button
+  const payBtn = document.getElementById('pay-with-card');
+  if (payBtn) payBtn.addEventListener('click', payWithCard);
+
 
 	// Reveal homepage image if the user has set a src attribute in index.html
 	const siteImg = document.getElementById('site-image');
@@ -669,4 +707,30 @@ function copyOrderToClipboard(){
 	navigator.clipboard.writeText(orderText).then(()=>{
 		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard — paste into email or message.';
 	});
+
+
+    const VERCEL_API_BASE = "https://kellyscandles-vercel-r8lnuhzq2-charles-hoskins-projects.vercel.app";
+
+async function payWithCard() {
+  const cart = getCart();
+  if (!cart.length) return alert("Your cart is empty.");
+
+  const msg = document.getElementById("pay-msg");
+  if (msg) { msg.classList.remove("hidden"); msg.textContent = "Redirecting to secure checkout…"; }
+
+  const res = await fetch(`${VERCEL_API_BASE}/api/create-checkout-session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cart })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    if (msg) msg.textContent = data.error || "Checkout error.";
+    return;
+  }
+
+  window.location.href = data.url;
+}
+
 }
