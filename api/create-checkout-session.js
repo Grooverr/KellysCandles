@@ -1,5 +1,26 @@
 import Stripe from "stripe";
 
+const PRICE_MAP = {
+  "Apple Pie|16 oz": 1600,
+  "Love Spelling|16 oz": 1600,
+  "Black Raspberry|16 oz": 1600,
+  "Monkey Farts|16 oz": 1600,
+  "Lilac Bush|16 oz": 1600,
+  "Lavander|16 oz": 1600,
+
+  "Apple Pie|12 oz": 1200,
+  "Black Raspberry|12 oz": 1200,
+  "Monkey Farts|12 oz": 1200,
+  "Lilac Bush|12 oz": 1200,
+
+  "Apple Pie|6 oz": 600,
+  "Black Raspberry|6 oz": 600,
+  "Monkey Farts|6 oz": 600,
+  "Lilac Bush|6 oz": 600,
+  "Lavander|6 oz": 600,
+};
+
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
@@ -31,25 +52,31 @@ export default async function handler(req, res) {
     }
 
     const line_items = cart.map(item => {
-      const price = parseFloat(
-        String(item.price).replace(/[^0-9.]/g, "")
-      );
+  const name = String(item.name || "").trim();
+  const size = String(item.size || "").trim();
+  const scent = String(item.scent || "").trim();
+  const qty = Math.max(1, Number(item.qty || 1));
 
-      if (!price || price <= 0) {
-        throw new Error("Invalid price");
-      }
+  if (!name || !size) throw new Error("Invalid cart item");
+  if (qty > 10) throw new Error("Quantity limit exceeded");
 
-      return {
-        quantity: Math.max(1, Number(item.qty || 1)),
-        price_data: {
-          currency: "usd",
-          unit_amount: Math.round(price * 100),
-          product_data: {
-            name: `${item.name}${item.scent ? " • " + item.scent : ""}${item.size ? " • " + item.size : ""}`,
-          },
-        },
-      };
-    });
+  const key = `${name}|${size}`;
+  const unit_amount = PRICE_MAP[key];
+  if (!unit_amount) throw new Error(`Invalid product/size: ${key}`);
+
+  const displayName =
+    `${name}${scent ? " • " + scent : ""} • ${size}`;
+
+  return {
+    quantity: qty,
+    price_data: {
+      currency: "usd",
+      unit_amount,
+      product_data: { name: displayName },
+    },
+  };
+});
+
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
