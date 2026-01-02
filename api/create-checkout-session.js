@@ -4,22 +4,26 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async (req, res) => {
   // ---- CORS (so GitHub Pages can call Vercel) ----
-  const origin = req.headers.origin || "";
-  const allowedOrigins = [
+
+
+  const allowedOrigins = new Set([
   "https://grooverr.github.io",
-  "https://grooverr.github.io/KellysCandles"
-];
+  "http://localhost:5500",
+  "http://127.0.0.1:5500"
+]);
 
+const origin = req.headers.origin;
 
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  }
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+if (origin && allowedOrigins.has(origin)) {
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Vary", "Origin");
+}
 
-  if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+if (req.method === "OPTIONS") return res.status(204).end();
+
 
   try {
     const { cart } = req.body || {};
