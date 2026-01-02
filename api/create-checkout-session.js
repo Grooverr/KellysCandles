@@ -6,8 +6,10 @@ module.exports = async (req, res) => {
   // ---- CORS (so GitHub Pages can call Vercel) ----
   const origin = req.headers.origin || "";
   const allowedOrigins = [
-    "https://grooverr.github.io"
-  ];
+  "https://grooverr.github.io",
+  "https://grooverr.github.io/KellysCandles"
+];
+
 
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
