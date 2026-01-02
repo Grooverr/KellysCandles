@@ -227,31 +227,42 @@ async function loadInventory() {
 	}
 }
 
-const VERCEL_API_BASE = "kellyscandles-vercel.vercel.app";
+const VERCEL_API_BASE = "https://kellyscandles-vercel.vercel.app";
 
 async function payWithCard() {
   const cart = getCart();
-  if (!cart.length) return alert("Your cart is empty.");
-
   const msg = document.getElementById("pay-msg");
+  const payBtn = document.getElementById("pay-with-card");
+
+  if (!cart.length) {
+    if (msg) { msg.classList.remove("hidden"); msg.textContent = "Your cart is empty."; }
+    return;
+  }
+
+  if (payBtn) payBtn.disabled = true;
   if (msg) {
     msg.classList.remove("hidden");
     msg.textContent = "Redirecting to secure checkout…";
   }
 
-  const res = await fetch(`${VERCEL_API_BASE}/api/create-checkout-session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cart })
-  });
+  const url = `${VERCEL_API_BASE}/api/create-checkout-session`;
+  console.log("[stripe] create-checkout-session", url);
 
-  const data = await res.json();
-  if (!res.ok) {
-    if (msg) msg.textContent = data.error || "Checkout error.";
-    return;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cart })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Checkout failed.");
+
+    window.location.href = data.url;
+  } catch (err) {
+    if (msg) { msg.classList.remove("hidden"); msg.textContent = err.message || "Checkout error."; }
+    if (payBtn) payBtn.disabled = false;
   }
-
-  window.location.href = data.url;
 }
 
 
@@ -266,9 +277,9 @@ document.addEventListener('DOMContentLoaded', function () {
 	loadInventory();
 	initCartUI();
 
-    // Stripe checkout button
-  const payBtn = document.getElementById('pay-with-card');
-  if (payBtn) payBtn.addEventListener('click', payWithCard);
+	// Stripe checkout button
+	const payBtn = document.getElementById('pay-with-card');
+	if (payBtn) payBtn.addEventListener('click', payWithCard);
 
 
 	// Reveal homepage image if the user has set a src attribute in index.html
@@ -364,45 +375,6 @@ function initCartUI(){
 			b.classList.add('active');
 			renderAvailable();
 		}));
-
-// ---- Stripe Checkout redirect (Pay with Card) ----
-const payBtn = document.getElementById("pay-with-card");
-const payMsg = document.getElementById("pay-msg");
-
-// IMPORTANT: set this to your Vercel deployment base (no trailing slash)
-const VERCEL_API_BASE = "https://kellyscandles-vercel-7rj13bz1c-charles-hoskins-projects.vercel.app";
-
-if (payBtn) {
-  payBtn.addEventListener("click", async () => {
-    const cart = getCart();
-    if (!cart.length) {
-      if (payMsg) { payMsg.classList.remove("hidden"); payMsg.textContent = "Your cart is empty."; }
-      return;
-    }
-
-    payBtn.disabled = true;
-    if (payMsg) { payMsg.classList.add("hidden"); payMsg.textContent = ""; }
-
-    try {
-      const res = await fetch(`${VERCEL_API_BASE}/api/create-checkout-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart })
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Checkout failed");
-
-      window.location.href = data.url; // Redirect to Stripe Checkout
-    } catch (err) {
-      if (payMsg) { payMsg.classList.remove("hidden"); payMsg.textContent = err.message; }
-      payBtn.disabled = false;
-    }
-  });
-}
-
-
-
 	}
 }
 
@@ -746,30 +718,4 @@ function copyOrderToClipboard(){
 	navigator.clipboard.writeText(orderText).then(()=>{
 		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard — paste into email or message.';
 	});
-
-
-    const VERCEL_API_BASE = "https://kellyscandles-vercel-r8lnuhzq2-charles-hoskins-projects.vercel.app";
-
-async function payWithCard() {
-  const cart = getCart();
-  if (!cart.length) return alert("Your cart is empty.");
-
-  const msg = document.getElementById("pay-msg");
-  if (msg) { msg.classList.remove("hidden"); msg.textContent = "Redirecting to secure checkout…"; }
-
-  const res = await fetch(`${VERCEL_API_BASE}/api/create-checkout-session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cart })
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    if (msg) msg.textContent = data.error || "Checkout error.";
-    return;
-  }
-
-  window.location.href = data.url;
-}
-
 }

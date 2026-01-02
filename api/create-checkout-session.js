@@ -4,26 +4,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async (req, res) => {
   // ---- CORS (so GitHub Pages can call Vercel) ----
+  const allowedOrigins = new Set(["https://grooverr.github.io"]);
+  const origin = req.headers.origin;
 
-
-  const allowedOrigins = new Set([
-  "https://grooverr.github.io",
-  "http://localhost:5500",
-  "http://127.0.0.1:5500"
-]);
-
-const origin = req.headers.origin;
-
-if (origin && allowedOrigins.has(origin)) {
-  res.setHeader("Access-Control-Allow-Origin", origin);
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
   res.setHeader("Vary", "Origin");
-}
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-if (req.method === "OPTIONS") return res.status(204).end();
-
+  if (req.method === "OPTIONS") {
+    console.log("[checkout] OPTIONS preflight");
+    return res.status(204).end();
+  }
 
   try {
     const { cart } = req.body || {};
@@ -35,15 +29,17 @@ if (req.method === "OPTIONS") return res.status(204).end();
     const line_items = cart.map((item) => {
       const qty = Math.max(1, Number(item.qty || 1));
       const priceNum = parseFloat(String(item.price || "").replace(/[^0-9.\-]/g, "")) || 0;
+      const unitAmount = Math.round(priceNum * 100);
+      const variantParts = [item.scent, item.size].filter(Boolean);
+      const variant = variantParts.length ? ` (${variantParts.join(" • ")})` : "";
 
       return {
         quantity: qty,
         price_data: {
           currency: "usd",
-          unit_amount: Math.round(priceNum * 100),
+          unit_amount: unitAmount,
           product_data: {
-            name: `${item.name || "Candle"}${item.size ? ` (${item.size})` : ""}`,
-            description: item.scent ? String(item.scent) : undefined
+            name: `${item.name || "Candle"}${variant}`
           }
         }
       };
@@ -53,12 +49,13 @@ if (req.method === "OPTIONS") return res.status(204).end();
       mode: "payment",
       line_items,
       // Put your real GH Pages URLs here:
-      success_url: "https://grooverr.github.io/KellysCandles/thank-you.html",
-      cancel_url: "https://grooverr.github.io/KellysCandles/",
+      success_url: "https://grooverr.github.io/KellysCandles/success.html",
+      cancel_url: "https://grooverr.github.io/KellysCandles/cancel.html",
       // optional but helpful:
       customer_creation: "if_required"
     });
 
+    console.log("[checkout] session created", session.id);
     return res.status(200).json({ url: session.url });
   } catch (e) {
     return res.status(500).json({ error: e.message || "Server error" });
