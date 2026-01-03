@@ -83,6 +83,12 @@ export default async function handler(req, res) {
       line_items,
       success_url: "https://grooverr.github.io/KellysCandles/success.html",
       cancel_url: "https://grooverr.github.io/KellysCandles/cancel.html",
+
+      metadata: {
+       items: cart.map(i => `${i.qty}x ${i.name} (${i.size})`).join(", "),
+},
+
+
     });
 
     return res.status(200).json({ url: session.url });
