@@ -23,7 +23,10 @@ const PRICE_MAP = {
 const SCENT_ALIASES = {
   "black raspberry vanilla bean": "Black Raspberry",
   "black raspberry vanilla": "Black Raspberry",
+  "raspberry": "Black Raspberry",  
+  "lavender": "Lavander", // ✅ if your UI/sheet says Lavender      // ✅ ADD THIS
 };
+
 
 const VALID_SCENTS = new Set(
   Object.keys(PRICE_MAP).map((key) => key.split("|")[0])
@@ -38,9 +41,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // ✅ Allow list origins (add your custom domain later)
 const ALLOWED_ORIGINS = new Set([
   "https://grooverr.github.io",
-  // after you point the domain, add:
-  // "https://kelleyscandles.com",
-  // "https://www.kelleyscandles.com",
+  "https://kelleyscandles.com",
+  "https://www.kelleyscandles.com",
   // optional local dev:
   "http://localhost:5500",
   "http://127.0.0.1:5500",
@@ -129,11 +131,16 @@ export default async function handler(req, res) {
       }
       const key = `${scent}|${size}`;
       const unit_amount = PRICE_MAP[key];
-      if (!unit_amount) {
-        const err = new Error(`No price found for "${key}" (cart item index ${index})`);
-        err.statusCode = 400;
-        throw err;
-      }
+if (!unit_amount) {
+  const availableForScent = Object.keys(PRICE_MAP).filter(k => k.startsWith(`${scent}|`));
+  const err = new Error(
+    `No price found for "${key}" (cart item index ${index}). ` +
+    (availableForScent.length ? `Available: ${availableForScent.join(", ")}` : "No prices exist for this scent.")
+  );
+  err.statusCode = 400;
+  throw err;
+}
+
       return { qty, scent, size, unit_amount, key };
     });
 
@@ -154,8 +161,9 @@ export default async function handler(req, res) {
 
     // ✅ Use your canonical site base
     // (If you later move to your domain, swap these to your domain)
-    const success_url = "https://grooverr.github.io/KellysCandles/success.html";
-    const cancel_url = "https://grooverr.github.io/KellysCandles/cancel.html";
+    const success_url =
+      "https://www.kelleyscandles.com/success.html?session_id={CHECKOUT_SESSION_ID}";
+    const cancel_url = "https://www.kelleyscandles.com/cancel.html";
 
     const session = await stripe.checkout.sessions.create({
   mode: "payment",
