@@ -111,8 +111,8 @@ export default async function handler(req, res) {
     }
 
     const normalizedItems = cart.map((item, index) => {
-      const scentSource = item.scent || item.name;
-      const scent = normalizeScent(scentSource, index);
+      const nameSource = item.candleName || item.name || item.scent;
+      const scent = normalizeScent(nameSource, index);
       const size = normalizeSize(item.size, index);
       const qty = Math.max(1, Number(item.qty || 1));
       if (qty > 10) {

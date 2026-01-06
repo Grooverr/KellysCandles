@@ -269,6 +269,7 @@ async function loadInventory() {
 const VERCEL_API_BASE = "https://kellyscandles-vercel.vercel.app";
 
 async function payWithCard() {
+  console.log("[checkout] Pay with Card clicked");
   const msg = document.getElementById("pay-msg");
   const payBtn = document.getElementById("pay-with-card");
   let overrideMessage = "";
@@ -317,6 +318,14 @@ async function payWithCard() {
   }
 }
 
+function bindPayWithCard() {
+  const payBtn = document.getElementById("pay-with-card");
+  if (!payBtn) return;
+  if (payBtn.dataset.bound === "1") return;
+  payBtn.dataset.bound = "1";
+  payBtn.addEventListener("click", payWithCard);
+}
+
 
 
 
@@ -330,8 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	initCartUI();
 
 	// Stripe checkout button
-	const payBtn = document.getElementById('pay-with-card');
-	if (payBtn) payBtn.addEventListener('click', payWithCard);
+	bindPayWithCard();
 
 
 	// Reveal homepage image if the user has set a src attribute in index.html
@@ -603,6 +611,7 @@ function renderCart(){
 	cartCount.textContent = cart.reduce((s,i)=>s+Number(i.qty||0),0);
 	cartTotal.textContent = '$' + total.toFixed(2);
 	updateOrderForm(cart);
+	bindPayWithCard();
 
 	// attach qty and remove handlers
 	cartItems.querySelectorAll('.qty-input').forEach(inp=> inp.addEventListener('change', (e)=> updateQty(Number(e.target.dataset.idx), Number(e.target.value) || 1)));
