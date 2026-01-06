@@ -23,9 +23,13 @@ const PRICE_MAP = {
 const SCENT_ALIASES = {
   "black raspberry vanilla bean": "Black Raspberry",
   "black raspberry vanilla": "Black Raspberry",
-  "raspberry": "Black Raspberry",  
-  "lavender": "Lavander", // ✅ if your UI/sheet says Lavender      // ✅ ADD THIS
+  "raspberry": "Black Raspberry",
+
+  "apple": "Apple Pie",          // ✅ ADD THIS
+  "applepie": "Apple Pie",       // optional
+  "apple pie candle": "Apple Pie"// optional
 };
+
 
 
 const VALID_SCENTS = new Set(
