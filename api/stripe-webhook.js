@@ -34,28 +34,43 @@ function escapeHtml(str) {
 }
 
 async function sendOrderEmail({ subject, html }) {
-  const from = process.env.ORDER_NOTIFY_FROM_EMAIL; // e.g. orders@kelleyscandles.com
-  const to = process.env.ORDER_NOTIFY_TO_EMAIL;     // e.g. your personal email
+  const fromEmail = process.env.ORDER_NOTIFY_FROM_EMAIL; // orders@kelleyscandles.com
+  const to = process.env.ORDER_NOTIFY_TO_EMAIL;          // your inbox
 
-  if (!process.env.RESEND_API_KEY || !from || !to) {
+  // Safer "From" format (helps deliverability + some providers require a name)
+  const from = fromEmail ? `Kelley's Candles <${fromEmail}>` : "";
+
+  if (!process.env.RESEND_API_KEY || !fromEmail || !to) {
     console.log("[email] missing env vars", {
       hasResendKey: !!process.env.RESEND_API_KEY,
-      from,
+      fromEmail,
       to,
     });
     return { skipped: true, reason: "missing env vars" };
   }
 
-  const result = await resend.emails.send({
-    from,
-    to,
-    subject,
-    html,
-  });
+  try {
+    const result = await resend.emails.send({
+      from,
+      to,
+      subject,
+      html,
+    });
 
-  console.log("[email] sent", result);
-  return result;
+    console.log("[email] sent", result);
+    return result;
+  } catch (err) {
+    // Resend errors often include useful fields
+    console.error("[email] resend send failed:", {
+      message: err?.message,
+      name: err?.name,
+      statusCode: err?.statusCode,
+      response: err?.response,
+    });
+    throw err;
+  }
 }
+
 
 export default async function handler(req, res) {
   // Stripe webhooks must be POST
