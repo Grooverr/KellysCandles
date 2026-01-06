@@ -33,17 +33,11 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-async function sendOrderEmail({ subject, html }) {
-  const fromEmail = process.env.ORDER_NOTIFY_FROM_EMAIL; // orders@kelleyscandles.com
-  const to = process.env.ORDER_NOTIFY_TO_EMAIL;          // your inbox
-
-  // Safer "From" format (helps deliverability + some providers require a name)
-  const from = fromEmail ? `Kelley's Candles <${fromEmail}>` : "";
-
-  if (!process.env.RESEND_API_KEY || !fromEmail || !to) {
+async function sendEmail({ to, from, subject, html }) {
+  if (!process.env.RESEND_API_KEY || !from || !to) {
     console.log("[email] missing env vars", {
       hasResendKey: !!process.env.RESEND_API_KEY,
-      fromEmail,
+      from,
       to,
     });
     return { skipped: true, reason: "missing env vars" };
@@ -56,45 +50,17 @@ async function sendOrderEmail({ subject, html }) {
       subject,
       html,
     });
-
     console.log("[email] sent", result);
     return result;
   } catch (err) {
-    // Resend errors often include useful fields
     console.error("[email] resend send failed:", {
       message: err?.message,
       name: err?.name,
       statusCode: err?.statusCode,
       response: err?.response,
     });
-    throw err;
+    return { error: true };
   }
-}
-
-
-async function sendCustomerEmail({ to, subject, html }) {
-  const fromEmail =
-    process.env.CUSTOMER_CONFIRM_FROM_EMAIL || process.env.ORDER_NOTIFY_FROM_EMAIL;
-  const from = fromEmail ? `Kelley's Candles <${fromEmail}>` : "";
-
-  if (!process.env.RESEND_API_KEY || !fromEmail || !to) {
-    console.log("[customer-email] missing env vars", {
-      hasResendKey: !!process.env.RESEND_API_KEY,
-      fromEmail,
-      to,
-    });
-    return { skipped: true, reason: "missing env vars" };
-  }
-
-  const result = await resend.emails.send({
-    from,
-    to,
-    subject,
-    html,
-  });
-
-  console.log("[customer-email] sent", result);
-  return result;
 }
 
 
@@ -228,46 +194,52 @@ export default async function handler(req, res) {
         </div>
       `;
 
-      // 🔥 Send the email
-      await sendOrderEmail({ subject, html });
+      const storeTo = process.env.ORDER_NOTIFY_TO_EMAIL;
+      const storeFromEmail = process.env.ORDER_NOTIFY_FROM_EMAIL;
+      const storeFrom = storeFromEmail ? `Kelley's Candles <${storeFromEmail}>` : "";
+
+      const customerTo = customerEmail;
+      const customerFromEmail =
+        process.env.CUSTOMER_CONFIRM_FROM_EMAIL || process.env.ORDER_NOTIFY_FROM_EMAIL;
+      const customerFrom = customerFromEmail ? `Kelley's Candles <${customerFromEmail}>` : "";
+
+      const customerSubject = "Your Kelley's Candles order receipt";
+      const customerHtml = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.4;">
+          <h2>Thank you for your order!</h2>
+          <p>This email confirms we received your order.</p>
+
+          <h3>Items</h3>
+          <ul>${itemsHtml || "<li>(no items)</li>"}</ul>
+
+          <p><strong>Total paid:</strong> ${escapeHtml(money(total, currency))}</p>
+        </div>
+      `;
+
+      try {
+        await sendEmail({ to: storeTo, from: storeFrom, subject, html });
+      } catch (err) {
+        console.error("[email] store notification failed:", err?.message || err);
+      }
+
+      try {
+        if (customerTo) {
+          await sendEmail({
+            to: customerTo,
+            from: customerFrom,
+            subject: customerSubject,
+            html: customerHtml,
+          });
+        } else {
+          console.log("[email] customer email missing");
+        }
+      } catch (err) {
+        console.error("[email] customer confirmation failed:", err?.message || err);
+      }
     }
-
-    const shouldSendCustomer =
-  (process.env.SEND_CUSTOMER_CONFIRMATION || "").toLowerCase() !== "false";
-
-if (shouldSendCustomer && customerEmail) {
-  const customerSubject = `Thanks for your order at Kelley's Candles!`;
-
-  const customerHtml = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.4;">
-      <h2>Thank you for your order!</h2>
-      <p>We received your payment and will follow up soon.</p>
-
-      <h3>Order details</h3>
-      <ul>${itemsHtml || "<li>(no items)</li>"}</ul>
-
-      <p><strong>Total:</strong> ${escapeHtml(money(total, currency))}</p>
-
-      <p style="margin-top:16px;">
-        If you have any questions, reply to this email.
-      </p>
-    </div>
-  `;
-
-  await sendCustomerEmail({
-    to: customerEmail,
-    subject: customerSubject,
-    html: customerHtml,
-  });
-} else {
-  console.log("[customer-email] skipped", { hasCustomerEmail: !!customerEmail });
-}
-
-
-    // Always return 200 quickly so Stripe stops retrying
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("[webhook] handler error:", err);
-    return res.status(500).send("Webhook handler failed");
+    return res.status(200).json({ received: true });
   }
 }
