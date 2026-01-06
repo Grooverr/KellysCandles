@@ -108,24 +108,41 @@ export default async function handler(req, res) {
     const cancel_url = "https://grooverr.github.io/KellysCandles/cancel.html";
 
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items,
-      success_url,
-      cancel_url,
+  mode: "payment",
+  line_items,
+  success_url,
+  cancel_url,
 
-      // ✅ Helps webhook have reliable email, and Stripe can send receipt if enabled
-      customer_email: typeof customerEmail === "string" ? customerEmail.trim() : undefined,
+  // ✅ Helps webhook have reliable email, and Stripe can send receipt if enabled
+  customer_email: typeof customerEmail === "string" ? customerEmail.trim() : undefined,
 
-      phone_number_collection: { enabled: true },
-      shipping_address_collection: { allowed_countries: ["US"] },
+  // ✅ REQUIRED: always collect phone + shipping address
+  phone_number_collection: { enabled: true },
+  shipping_address_collection: { allowed_countries: ["US"] },
 
-      // ✅ Useful for your webhook, but don't trust it for totals/prices
-      metadata: {
-        items: itemsSummary,
-        source: "github-pages",
-        fulfillment: "shipping",
+  // ✅ REQUIRED: shipping method + shipping cost (shows in Stripe Checkout)
+  shipping_options: [
+    {
+      shipping_rate_data: {
+        display_name: "Standard Shipping",
+        type: "fixed_amount",
+        fixed_amount: { amount: 795, currency: "usd" }, // $7.95
+        delivery_estimate: {
+          minimum: { unit: "business_day", value: 3 },
+          maximum: { unit: "business_day", value: 7 },
+        },
       },
-    });
+    },
+  ],
+
+  // ✅ Useful for your webhook, but don't trust it for totals/prices
+  metadata: {
+    items: itemsSummary,
+    source: "github-pages",
+    fulfillment: "shipping",
+  },
+});
+
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
