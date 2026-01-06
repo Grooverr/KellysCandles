@@ -187,7 +187,7 @@ function createCard(item) {
 	const el = document.createElement('article');
 	el.className = 'card';
 
-	const name = item['candle name'] || item['name'] || item['Candle Name'] || item['Name'] || '';
+	const candleName = item['candle name'] || item['Candle Name'] || item['name'] || item['Name'] || '';
 	const scent = item['scent'] || item['Scent'] || '';
 	const size = item['size'] || item['Size'] || '';
 	const price = item['price'] || item['Price'] || '';
@@ -195,11 +195,12 @@ function createCard(item) {
 
 	// Add data attributes so the cart logic can pick up item details
 	el.innerHTML = `
-		<h3 class="product-name">${escapeHtml(name)}</h3>
-		<p class="desc">${escapeHtml(scent)} • ${escapeHtml(size)}</p>
+		<h3 class="product-name">${escapeHtml(candleName)}</h3>
+		<p class="desc">${escapeHtml(scent)}</p>
+		<p class="desc">${escapeHtml(size)}</p>
 		<div class="meta-row"><span class="price">${escapeHtml(price)}</span><span>Qty: ${escapeHtml(quantity)}</span></div>
 		<div style="margin-top:8px">
-			<button class="btn add-to-cart" data-name="${escapeHtml(name)}" data-price="${escapeHtml(price)}" data-size="${escapeHtml(size)}" data-scent="${escapeHtml(scent)}">Add to Cart</button>
+			<button class="btn add-to-cart" data-name="${escapeHtml(candleName)}" data-candle-name="${escapeHtml(candleName)}" data-price="${escapeHtml(price)}" data-size="${escapeHtml(size)}" data-scent="${escapeHtml(scent)}">Add to Cart</button>
 		</div>
 	`;
 	return el;
@@ -356,7 +357,8 @@ function saveCart(c){ localStorage.setItem(CART_KEY, JSON.stringify(c)); renderC
 function addToCart(item){
 	const cart = getCart();
 	// merge by name + size
-	const idx = cart.findIndex(i => i.name === item.name && i.size === item.size);
+	const itemName = item.candleName || item.name;
+	const idx = cart.findIndex(i => (i.candleName || i.name) === itemName && i.size === item.size);
 	if (idx >= 0) cart[idx].qty = (Number(cart[idx].qty)||0) + (Number(item.qty)||1);
 	else cart.push({ ...item, qty: Number(item.qty)||1 });
 	saveCart(cart);
@@ -392,7 +394,8 @@ function initCartUI(){
 	document.body.addEventListener('click', function(e){
 		if (e.target && e.target.matches('.add-to-cart')){
 			const b = e.target;
-			const item = { name:b.dataset.name||'', price:b.dataset.price||'', size:b.dataset.size||'', scent:b.dataset.scent||'', qty:1 };
+			const candleName = b.dataset.candleName || b.dataset.name || '';
+			const item = { candleName, name:candleName, price:b.dataset.price||'', size:b.dataset.size||'', scent:b.dataset.scent||'', qty:1 };
 			addToCart(item);
 			// brief feedback
 			b.textContent = 'Added'; setTimeout(()=> b.textContent = 'Add to Cart',900);
@@ -523,13 +526,14 @@ function buildOrderSummary(cart){
 	lines.push("Kelley's Candles Order");
 	lines.push('----------------------');
 	cart.forEach(it => {
+		const itemName = it.candleName || it.name || '';
 		const priceNum = parseFloat(String(it.price||'').replace(/[^0-9\.\-]/g,'')) || 0;
 		const qty = Number(it.qty)||1;
 		const lineTotal = priceNum * qty;
 		total += lineTotal;
 		const variantParts = [it.scent, it.size].filter(Boolean);
 		const variant = variantParts.length ? variantParts.join(' • ') : '—';
-		lines.push(`Item: ${it.name || ''}`);
+		lines.push(`Item: ${itemName}`);
 		lines.push(`Variant/Size: ${variant}`);
 		lines.push(`Qty: ${qty}`);
 		lines.push(`Unit Price: $${priceNum.toFixed(2)}`);
@@ -581,9 +585,11 @@ function renderCart(){
 		const priceNum = parseFloat(String(it.price||'').replace(/[^0-9\.\-]/g,'')) || 0;
 		total += priceNum * (Number(it.qty)||1);
 		const div = document.createElement('div'); div.className='cart-item';
+		const displayName = it.candleName || it.name;
 		div.innerHTML = `<div class="cart-item-info">
-			<div class="product-name">${escapeHtml(it.name)}</div>
-			<div class="meta">${escapeHtml(it.scent)} • ${escapeHtml(it.size)}</div>
+			<div class="product-name">${escapeHtml(displayName)}</div>
+			<div class="meta">${escapeHtml(it.scent)}</div>
+			<div class="meta">${escapeHtml(it.size)}</div>
 		</div>
 		<div class="cart-item-actions">
 			<div class="item-price">${escapeHtml(it.price)}</div>
@@ -609,7 +615,7 @@ function buildOrderText(formData){
 	lines.push(`Order from Kelley's Candles`);
 	lines.push('');
 	lines.push('Items:');
-	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.name} (${it.size}) — ${it.price}`); });
+	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.candleName || it.name} (${it.size}) — ${it.price}`); });
 	lines.push('');
 	lines.push('Customer:');
 	lines.push(`Name: ${formData.get('name') || ''}`);

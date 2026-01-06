@@ -20,18 +20,6 @@ const PRICE_MAP = {
   "Lavander|6 oz": 600,
 };
 
-const SCENT_ALIASES = {
-  "black raspberry vanilla bean": "Black Raspberry",
-  "black raspberry vanilla": "Black Raspberry",
-  "raspberry": "Black Raspberry",
-
-  "apple": "Apple Pie",          // ✅ ADD THIS
-  "applepie": "Apple Pie",       // optional
-  "apple pie candle": "Apple Pie"// optional
-};
-
-
-
 const VALID_SCENTS = new Set(
   Object.keys(PRICE_MAP).map((key) => key.split("|")[0])
 );
@@ -74,8 +62,7 @@ function normalizeScent(raw, index) {
     err.statusCode = 400;
     throw err;
   }
-  const lowered = cleaned.toLowerCase();
-  const canonical = SCENT_ALIASES[lowered] || cleaned;
+  const canonical = cleaned;
   if (ENFORCE_SCENT_ALLOWLIST && !VALID_SCENTS.has(canonical)) {
     const err = new Error(`Unknown scent "${cleaned}" for cart item at index ${index}`);
     err.statusCode = 400;
