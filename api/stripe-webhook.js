@@ -72,6 +72,33 @@ async function sendOrderEmail({ subject, html }) {
 }
 
 
+async function sendCustomerEmail({ to, subject, html }) {
+  const fromEmail =
+    process.env.CUSTOMER_CONFIRM_FROM_EMAIL || process.env.ORDER_NOTIFY_FROM_EMAIL;
+  const from = fromEmail ? `Kelley's Candles <${fromEmail}>` : "";
+
+  if (!process.env.RESEND_API_KEY || !fromEmail || !to) {
+    console.log("[customer-email] missing env vars", {
+      hasResendKey: !!process.env.RESEND_API_KEY,
+      fromEmail,
+      to,
+    });
+    return { skipped: true, reason: "missing env vars" };
+  }
+
+  const result = await resend.emails.send({
+    from,
+    to,
+    subject,
+    html,
+  });
+
+  console.log("[customer-email] sent", result);
+  return result;
+}
+
+
+
 export default async function handler(req, res) {
   // Stripe webhooks must be POST
   if (req.method !== "POST") {
@@ -204,6 +231,38 @@ export default async function handler(req, res) {
       // 🔥 Send the email
       await sendOrderEmail({ subject, html });
     }
+
+    const shouldSendCustomer =
+  (process.env.SEND_CUSTOMER_CONFIRMATION || "").toLowerCase() !== "false";
+
+if (shouldSendCustomer && customerEmail) {
+  const customerSubject = `Thanks for your order at Kelley's Candles!`;
+
+  const customerHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.4;">
+      <h2>Thank you for your order!</h2>
+      <p>We received your payment and will follow up soon.</p>
+
+      <h3>Order details</h3>
+      <ul>${itemsHtml || "<li>(no items)</li>"}</ul>
+
+      <p><strong>Total:</strong> ${escapeHtml(money(total, currency))}</p>
+
+      <p style="margin-top:16px;">
+        If you have any questions, reply to this email.
+      </p>
+    </div>
+  `;
+
+  await sendCustomerEmail({
+    to: customerEmail,
+    subject: customerSubject,
+    html: customerHtml,
+  });
+} else {
+  console.log("[customer-email] skipped", { hasCustomerEmail: !!customerEmail });
+}
+
 
     // Always return 200 quickly so Stripe stops retrying
     return res.status(200).json({ received: true });
