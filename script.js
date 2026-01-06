@@ -233,6 +233,7 @@ async function payWithCard() {
   const cart = getCart();
   const msg = document.getElementById("pay-msg");
   const payBtn = document.getElementById("pay-with-card");
+  const email = (document.getElementById("customer-email")?.value || "").trim();
 
   if (!cart.length) {
     if (msg) { msg.classList.remove("hidden"); msg.textContent = "Your cart is empty."; }
@@ -245,6 +246,12 @@ async function payWithCard() {
     msg.textContent = "Redirecting to secure checkout…";
   }
 
+  if (!email) {
+    if (msg) { msg.classList.remove("hidden"); msg.textContent = "Please enter your email for a receipt."; }
+    if (payBtn) payBtn.disabled = false;
+    return;
+  }
+
   const url = `${VERCEL_API_BASE}/api/create-checkout-session`;
   console.log("[stripe] create-checkout-session", url);
 
@@ -252,7 +259,7 @@ async function payWithCard() {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cart })
+      body: JSON.stringify({ cart, customerEmail: email || undefined })
     });
 
     const data = await res.json();
