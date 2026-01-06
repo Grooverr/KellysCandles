@@ -116,13 +116,14 @@ export default async function handler(req, res) {
       // ✅ Helps webhook have reliable email, and Stripe can send receipt if enabled
       customer_email: typeof customerEmail === "string" ? customerEmail.trim() : undefined,
 
-      // ✅ If you want shipping, turn this on (US only example)
-      // shipping_address_collection: { allowed_countries: ["US"] },
+      phone_number_collection: { enabled: true },
+      shipping_address_collection: { allowed_countries: ["US"] },
 
       // ✅ Useful for your webhook, but don't trust it for totals/prices
       metadata: {
         items: itemsSummary,
         source: "github-pages",
+        fulfillment: "shipping",
       },
     });
 

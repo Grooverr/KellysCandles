@@ -243,7 +243,7 @@ async function payWithCard() {
   if (payBtn) payBtn.disabled = true;
   if (msg) {
     msg.classList.remove("hidden");
-    msg.textContent = "Redirecting to secure checkout…";
+    msg.textContent = "Redirecting to secure checkout to enter shipping details…";
   }
 
   if (!email) {

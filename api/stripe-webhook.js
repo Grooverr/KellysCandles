@@ -165,6 +165,20 @@ export default async function handler(req, res) {
           </p>
         `
         : "";
+      const shippingHtml = `
+        <h3>Shipping</h3>
+        <p>
+          <strong>Name:</strong> ${escapeHtml(shipping?.name || "")}<br/>
+          <strong>Phone:</strong> ${escapeHtml(customerPhone || "")}<br/>
+          <strong>Address:</strong>
+          ${escapeHtml(shipping?.address?.line1 || "")}
+          ${escapeHtml(shipping?.address?.line2 || "")}<br/>
+          ${escapeHtml(shipping?.address?.city || "")},
+          ${escapeHtml(shipping?.address?.state || "")}
+          ${escapeHtml(shipping?.address?.postal_code || "")}<br/>
+          ${escapeHtml(shipping?.address?.country || "")}
+        </p>
+      `;
 
       const subject = `New paid order — ${itemsText || "Checkout"} — ${money(total, currency)}`;
 
@@ -184,7 +198,7 @@ export default async function handler(req, res) {
           <h3>Items</h3>
           <ul>${itemsHtml || "<li>(no items)</li>"}</ul>
 
-          ${shipBlock}
+          ${shippingHtml}
 
           <h3>Stripe</h3>
           <p>
@@ -213,6 +227,7 @@ export default async function handler(req, res) {
           <ul>${itemsHtml || "<li>(no items)</li>"}</ul>
 
           <p><strong>Total paid:</strong> ${escapeHtml(money(total, currency))}</p>
+          ${shippingHtml}
         </div>
       `;
 
