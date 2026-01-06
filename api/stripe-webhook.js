@@ -74,6 +74,7 @@ async function sendEmail({ to, from, subject, html }) {
       to,
       subject,
       html,
+      reply_to: "kelleysfarmcandles@gmail.com",
     });
     console.log("[email] sent", result);
     return result;

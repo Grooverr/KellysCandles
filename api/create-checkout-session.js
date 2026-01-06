@@ -20,6 +20,17 @@ const PRICE_MAP = {
   "Lavander|6 oz": 600,
 };
 
+const SCENT_ALIASES = {
+  "black raspberry vanilla bean": "Black Raspberry",
+  "black raspberry vanilla": "Black Raspberry",
+};
+
+const VALID_SCENTS = new Set(
+  Object.keys(PRICE_MAP).map((key) => key.split("|")[0])
+);
+
+const ENFORCE_SCENT_ALLOWLIST = false;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2024-06-20",
 });
@@ -50,6 +61,41 @@ function setCors(req, res) {
   res.setHeader("Vary", "Origin");
 }
 
+function normalizeScent(raw, index) {
+  const cleaned = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!cleaned) {
+    const err = new Error(`Missing scent/name for cart item at index ${index}`);
+    err.statusCode = 400;
+    throw err;
+  }
+  const lowered = cleaned.toLowerCase();
+  const canonical = SCENT_ALIASES[lowered] || cleaned;
+  if (ENFORCE_SCENT_ALLOWLIST && !VALID_SCENTS.has(canonical)) {
+    const err = new Error(`Unknown scent "${cleaned}" for cart item at index ${index}`);
+    err.statusCode = 400;
+    throw err;
+  }
+  return canonical;
+}
+
+function normalizeSize(raw, index) {
+  const cleaned = String(raw || "").trim().toLowerCase();
+  const match = cleaned.match(/(\d+(\.\d+)?)/);
+  if (!match) {
+    const err = new Error(`Invalid size "${raw}" for cart item at index ${index}`);
+    err.statusCode = 400;
+    throw err;
+  }
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value <= 0) {
+    const err = new Error(`Invalid size "${raw}" for cart item at index ${index}`);
+    err.statusCode = 400;
+    throw err;
+  }
+  const sizeNum = Number.isInteger(value) ? value : value;
+  return `${sizeNum} oz`;
+}
+
 export default async function handler(req, res) {
   // ✅ ALWAYS set CORS headers first
   setCors(req, res);
@@ -71,35 +117,39 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Cart is empty" });
     }
 
-    // Build line items from server-side price map (prevents tampering)
-    const line_items = cart.map((item) => {
-      const name = String(item.name || "").trim();
-      const size = String(item.size || "").trim();
-      const scent = String(item.scent || "").trim();
+    const normalizedItems = cart.map((item, index) => {
+      const scentSource = item.scent || item.name;
+      const scent = normalizeScent(scentSource, index);
+      const size = normalizeSize(item.size, index);
       const qty = Math.max(1, Number(item.qty || 1));
-
-      if (!name || !size) throw new Error("Invalid cart item");
-      if (qty > 10) throw new Error("Quantity limit exceeded");
-
-      const key = `${name}|${size}`;
+      if (qty > 10) {
+        const err = new Error(`Quantity limit exceeded for cart item at index ${index}`);
+        err.statusCode = 400;
+        throw err;
+      }
+      const key = `${scent}|${size}`;
       const unit_amount = PRICE_MAP[key];
-      if (!unit_amount) throw new Error(`Invalid product/size: ${key}`);
-
-      const displayName = `${name}${scent ? " • " + scent : ""} • ${size}`;
-
-      return {
-        quantity: qty,
-        price_data: {
-          currency: "usd",
-          unit_amount,
-          product_data: { name: displayName },
-        },
-      };
+      if (!unit_amount) {
+        const err = new Error(`No price found for "${key}" (cart item index ${index})`);
+        err.statusCode = 400;
+        throw err;
+      }
+      return { qty, scent, size, unit_amount, key };
     });
 
+    // Build line items from server-side price map (prevents tampering)
+    const line_items = normalizedItems.map((item) => ({
+      quantity: item.qty,
+      price_data: {
+        currency: "usd",
+        unit_amount: item.unit_amount,
+        product_data: { name: `${item.scent} • ${item.size}` },
+      },
+    }));
+
     // Optional: simple cart summary for metadata
-    const itemsSummary = cart
-      .map((i) => `${Math.max(1, Number(i.qty || 1))}x ${i.name} (${i.size})`)
+    const itemsSummary = normalizedItems
+      .map((i) => `${i.qty}x ${i.scent} (${i.size})`)
       .join(", ");
 
     // ✅ Use your canonical site base
@@ -146,10 +196,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
+    const status = err?.statusCode && Number.isInteger(err.statusCode) ? err.statusCode : 500;
     console.error("[checkout] error:", err);
-    return res.status(500).json({
+    return res.status(status).json({
       error: err.message || "Checkout failed",
-      code: "CHECKOUT_CREATE_FAILED",
+      code: status === 400 ? "CHECKOUT_INVALID_CART" : "CHECKOUT_CREATE_FAILED",
     });
   }
 }
