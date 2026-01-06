@@ -9,9 +9,10 @@
 </head>
 
 <script>
+  // ✅ Clear cart + checkout lock after a successful order
   try { localStorage.removeItem('kellys_cart_v1'); } catch(e) {}
+  try { localStorage.removeItem('checkoutInProgress'); } catch(e) {}
 </script>
-
 
 <body>
   <header class="site-header">
@@ -30,12 +31,35 @@
   <main class="container">
     <section class="thank-you">
       <div class="thank-you-card">
-        <h2>Thank you!</h2>
-        <p>Your request has been received. We'll follow up by email as soon as possible.</p>
-        <p>In the meantime, please review our candle care and safety tips to get the most out of your candle.</p>
+        <h2>Order confirmed ✅</h2>
+
+        <p>
+          Thank you for your purchase! We received your order and will start preparing it for shipment.
+        </p>
+
+        <p id="order-id" style="display:none;">
+          <strong>Order ID:</strong> <span id="order-id-value"></span>
+        </p>
+
+        <p style="margin-top: 12px;">
+          You’ll receive a confirmation email shortly with your order summary and shipping details.
+        </p>
+
+        <p style="margin-top: 12px;">
+          <strong>What happens next:</strong><br>
+          • We’ll begin preparing your candles for shipment.<br>
+          • When your order ships, you’ll receive an update (and tracking if available).<br>
+          • Need to fix your shipping address? Reply to your confirmation email as soon as possible.
+        </p>
+
+        <!-- ✅ NEW: Real order details -->
+        <div id="order-details" style="margin-top:16px;">
+          <p id="order-details-status">Loading order details…</p>
+        </div>
+
         <div class="thank-you-actions">
-          <a href="candle-care.html">Candle Care &amp; Safety</a>
           <a href="index.html">Return to Home</a>
+          <a href="candle-care.html">Candle Care &amp; Safety</a>
         </div>
       </div>
     </section>
@@ -51,6 +75,110 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    const VERCEL_API_BASE = "https://kellyscandles-vercel.vercel.app";
+
+    function moneyPretty(cents, currency) {
+      const cur = (currency || "usd").toUpperCase();
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format((cents || 0) / 100);
+    }
+
+    function addrToLines(addr) {
+      if (!addr) return [];
+      const lines = [
+        addr.line1,
+        addr.line2,
+        `${addr.city || ""}${addr.city ? "," : ""} ${addr.state || ""} ${addr.postal_code || ""}`.trim(),
+        addr.country,
+      ].filter(Boolean);
+      return lines;
+    }
+
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("session_id");
+
+      if (sessionId) {
+        document.getElementById("order-id-value").textContent = sessionId;
+        document.getElementById("order-id").style.display = "block";
+      }
+
+      const holder = document.getElementById("order-details");
+      const statusEl = document.getElementById("order-details-status");
+
+      if (!sessionId) {
+        statusEl.textContent = "Order details unavailable (missing session id).";
+        return;
+      }
+
+      try {
+        const url = `${VERCEL_API_BASE}/api/get-checkout-session?session_id=${encodeURIComponent(sessionId)}`;
+        const res = await fetch(url, { method: "GET" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load order details.");
+
+        const itemsRows = (data.items || []).map((it) => {
+          const unit = (it.unit_amount != null) ? moneyPretty(it.unit_amount, data.currency) : "—";
+          const line = moneyPretty(it.amount_subtotal, data.currency);
+          return `
+            <tr>
+              <td style="padding:6px 0;">${it.description}</td>
+              <td style="padding:6px 0; text-align:center;">${it.quantity}</td>
+              <td style="padding:6px 0; text-align:right;">${unit}</td>
+              <td style="padding:6px 0; text-align:right;">${line}</td>
+            </tr>
+          `;
+        }).join("");
+
+        const shipName = data.shipping?.name || data.customer?.name || "";
+        const shipLines = addrToLines(data.shipping?.address);
+        const shipMethod = data.shipping_method || "Shipping";
+
+        holder.innerHTML = `
+          <hr style="margin:14px 0; opacity:.2;">
+          <h3 style="margin:0 0 8px;">Order details</h3>
+
+          <p style="margin:0 0 8px;"><strong>Shipping method:</strong> ${shipMethod}</p>
+
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:6px 0; border-bottom:1px solid rgba(0,0,0,.12);">Item</th>
+                <th style="text-align:center; padding:6px 0; border-bottom:1px solid rgba(0,0,0,.12);">Qty</th>
+                <th style="text-align:right; padding:6px 0; border-bottom:1px solid rgba(0,0,0,.12);">Unit</th>
+                <th style="text-align:right; padding:6px 0; border-bottom:1px solid rgba(0,0,0,.12);">Line</th>
+              </tr>
+            </thead>
+            <tbody>${itemsRows || ""}</tbody>
+          </table>
+
+          <div style="margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; padding:4px 0;">
+              <span>Subtotal</span><span>${moneyPretty(data.totals.subtotal, data.currency)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0;">
+              <span>Shipping</span><span>${moneyPretty(data.totals.shipping, data.currency)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0;">
+              <span>Tax</span><span>${moneyPretty(data.totals.tax, data.currency)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid rgba(0,0,0,.15); font-weight:700;">
+              <span>Total</span><span>${moneyPretty(data.totals.total, data.currency)}</span>
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <p style="margin:0 0 4px;"><strong>Shipping to:</strong></p>
+            <p style="margin:0;">${shipName ? `${shipName}<br>` : ""}${shipLines.join("<br>")}</p>
+          </div>
+        `;
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Could not load order details. Please check your confirmation email.";
+      }
+    })();
+  </script>
 
   <script src="script.js"></script>
 </body>

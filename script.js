@@ -39,6 +39,44 @@ function toCsvUrl(pubHtmlUrl) {
 	}
 }
 
+// --- Prevent double submits for Stripe Checkout ---
+let checkoutSubmitting = false;
+
+function lockCheckoutUI(isLocked, btn, statusEl, message) {
+  if (btn) {
+    btn.disabled = isLocked;
+    btn.setAttribute("aria-busy", isLocked ? "true" : "false");
+    btn.style.opacity = isLocked ? "0.7" : "";
+    btn.style.cursor = isLocked ? "not-allowed" : "";
+  }
+  if (statusEl && typeof message === "string") statusEl.textContent = message;
+}
+
+async function runCheckoutOnce({ btn, statusEl, run }) {
+  // memory + localStorage lock
+  if (checkoutSubmitting) return;
+  try {
+    if (localStorage.getItem("checkoutInProgress") === "1") return;
+  } catch (e) {}
+
+  checkoutSubmitting = true;
+  try { localStorage.setItem("checkoutInProgress", "1"); } catch (e) {}
+
+  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkout…");
+
+  try {
+    await run(); // your existing checkout logic
+  } catch (err) {
+    console.error("[checkout] failed:", err);
+    lockCheckoutUI(false, btn, statusEl, "Checkout failed. Please try again.");
+    checkoutSubmitting = false;
+    try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
+  }
+}
+
+
+
+
 const SHEET_CSV_URL = toCsvUrl(SHEET_PUBLISHED_URL);
 
 /* NEWSLETTER CONFIGURATION
@@ -230,45 +268,51 @@ async function loadInventory() {
 const VERCEL_API_BASE = "https://kellyscandles-vercel.vercel.app";
 
 async function payWithCard() {
-  const cart = getCart();
   const msg = document.getElementById("pay-msg");
   const payBtn = document.getElementById("pay-with-card");
-  const email = (document.getElementById("customer-email")?.value || "").trim();
+  let overrideMessage = "";
 
-  if (!cart.length) {
-    if (msg) { msg.classList.remove("hidden"); msg.textContent = "Your cart is empty."; }
-    return;
-  }
+  await runCheckoutOnce({
+    btn: payBtn,
+    statusEl: msg,
+    run: async () => {
+      const cart = getCart();
+      const email = (document.getElementById("customer-email")?.value || "").trim();
 
-  if (payBtn) payBtn.disabled = true;
-  if (msg) {
+      if (!cart.length) {
+        overrideMessage = "Your cart is empty.";
+        if (msg) { msg.classList.remove("hidden"); msg.textContent = overrideMessage; }
+        // Throw so wrapper unlocks UI + clears localStorage lock
+        throw new Error("Cart is empty");
+      }
+
+      if (!email) {
+        overrideMessage = "Please enter your email for a receipt.";
+        if (msg) { msg.classList.remove("hidden"); msg.textContent = overrideMessage; }
+        throw new Error("Missing email");
+      }
+
+      const url = `${VERCEL_API_BASE}/api/create-checkout-session`;
+      console.log("[stripe] create-checkout-session", url);
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart, customerEmail: email || undefined })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Checkout failed.");
+
+      // Keep lock ON while we redirect (success.html clears it)
+      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping details…");
+      window.location.href = data.url;
+    }
+  });
+
+  if (overrideMessage && msg) {
     msg.classList.remove("hidden");
-    msg.textContent = "Redirecting to secure checkout to enter shipping details…";
-  }
-
-  if (!email) {
-    if (msg) { msg.classList.remove("hidden"); msg.textContent = "Please enter your email for a receipt."; }
-    if (payBtn) payBtn.disabled = false;
-    return;
-  }
-
-  const url = `${VERCEL_API_BASE}/api/create-checkout-session`;
-  console.log("[stripe] create-checkout-session", url);
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cart, customerEmail: email || undefined })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Checkout failed.");
-
-    window.location.href = data.url;
-  } catch (err) {
-    if (msg) { msg.classList.remove("hidden"); msg.textContent = err.message || "Checkout error."; }
-    if (payBtn) payBtn.disabled = false;
+    msg.textContent = overrideMessage;
   }
 }
 
