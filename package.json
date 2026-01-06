@@ -2,6 +2,7 @@
   "name": "kellys-candles-api",
   "private": true,
   "dependencies": {
+    "resend": "^6.6.0",
     "stripe": "^16.12.0"
   }
 }
