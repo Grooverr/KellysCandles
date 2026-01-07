@@ -213,15 +213,22 @@ function createCard(item) {
 				'';
 
 			if (imgUrl) {
-				// normalize github pages folder casing: images/ -> Images/
-				imgUrl = imgUrl.replace(/^\/?images\//i, 'Images/');
-				imgUrl = imgUrl.replace(/\/images\//gi, '/Images/');
+  // normalize slashes
+  imgUrl = imgUrl.replace(/\\/g, '/');
 
-				// if relative, make absolute
-				if (!/^https?:\/\//i.test(imgUrl)) {
-					imgUrl = `${location.origin}/${imgUrl.replace(/^\/+/, '')}`;
-				}
-			}
+  // normalize github pages folder casing: images/ -> Images/
+  imgUrl = imgUrl.replace(/^\/?images\//i, 'Images/');
+  imgUrl = imgUrl.replace(/\/images\//gi, '/Images/');
+
+  // if someone put "products/..." in the sheet, assume it's under Images/products/
+  imgUrl = imgUrl.replace(/^\/?products\//i, 'Images/products/');
+
+  // if relative, make absolute
+  if (!/^https?:\/\//i.test(imgUrl)) {
+    imgUrl = `${location.origin}/${imgUrl.replace(/^\/+/, '')}`;
+  }
+}
+
 		} catch (e) {
 			imgUrl = '';
 		}
