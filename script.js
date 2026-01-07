@@ -193,12 +193,24 @@ function createCard(item) {
 	const price = item['price'] || item['Price'] || '';
 	const quantity = item['quantity'] || item['Quantity'] || '';
 
-	// optional image support (display-only). Look for common header names.
-	const imgKeys = ['image','Image','image_url','Image URL','photo','Photo','img','Img','imageURL','ImageURL'];
-	let imgUrl = '';
-	for (const k of imgKeys){ if (item[k] && String(item[k]).trim()) { imgUrl = item[k].trim(); break; } }
+		// optional image support (display-only).
+		// Case-insensitive lookup for common header names and support several variants.
+		const desiredKeys = ['image_url','image url','image','photo','picture','img'];
+		let imgUrl = '';
+		const props = Object.keys(item || {});
+		const normMap = {};
+		props.forEach(p => { normMap[p.toLowerCase().replace(/[_\s]+/g,'')] = p; });
+		for (const dk of desiredKeys){
+			const nk = dk.toLowerCase().replace(/[_\s]+/g,'');
+			const prop = normMap[nk];
+			if (prop){ const val = item[prop]; if (val && String(val).trim()){ imgUrl = String(val).trim(); break; } }
+		}
+		// If image path is relative (not starting with protocol), convert to absolute using location.origin
+		if (imgUrl && !/^[a-z]+:\/\//i.test(imgUrl)){
+			imgUrl = (location && location.origin ? String(location.origin).replace(/\/$/,'') : '') + '/' + imgUrl.replace(/^\/+/, '');
+		}
 
-	const imgHtml = imgUrl ? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>` : '';
+		const imgHtml = imgUrl ? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>` : '';
 
 	// Add data attributes so the cart logic can pick up item details. Do NOT include image in cart data.
 	el.innerHTML = `
