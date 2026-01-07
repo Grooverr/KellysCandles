@@ -193,8 +193,16 @@ function createCard(item) {
 	const price = item['price'] || item['Price'] || '';
 	const quantity = item['quantity'] || item['Quantity'] || '';
 
-	// Add data attributes so the cart logic can pick up item details
+	// optional image support (display-only). Look for common header names.
+	const imgKeys = ['image','Image','image_url','Image URL','photo','Photo','img','Img','imageURL','ImageURL'];
+	let imgUrl = '';
+	for (const k of imgKeys){ if (item[k] && String(item[k]).trim()) { imgUrl = item[k].trim(); break; } }
+
+	const imgHtml = imgUrl ? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>` : '';
+
+	// Add data attributes so the cart logic can pick up item details. Do NOT include image in cart data.
 	el.innerHTML = `
+		${imgHtml}
 		<h3 class="product-name">${escapeHtml(candleName)}</h3>
 		<p class="desc">${escapeHtml(scent)}</p>
 		<p class="desc">${escapeHtml(size)}</p>
@@ -351,6 +359,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Initialize newsletter UI
 	initNewsletterUI();
+
+	// DEV: inject a mock product card when previewing on localhost to verify image rendering.
+	try{
+		if (location && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')){
+			const inventory = document.getElementById('inventory');
+			if (inventory){
+				const demo = {
+					'candle name': 'Demo Lilac',
+					'Scent': 'Lilac',
+					'Size': '12oz',
+					'Price': '$18.00',
+					'Quantity': '5',
+					'Image': 'https://via.placeholder.com/600x400?text=Lilac+Demo'
+				};
+				// prepend demo card for quick visual check
+				inventory.insertBefore(createCard(demo), inventory.firstChild);
+			}
+		}
+	}catch(e){ /* noop */ }
 });
 
 /* CART LOGIC */
