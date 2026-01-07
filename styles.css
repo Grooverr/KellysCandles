@@ -65,6 +65,13 @@ body.cart-open{ overflow:hidden; }
 .homepage-image{ margin-top:12px; }
 .site-image{ width:270px; height:50px; border-radius:8px; display:block; box-shadow:0 4px 12px rgba(0,0,0,0.06); object-fit:cover; }
 
+/* Logo inside nav: override generic .site-image sizing so nav logo is readable */
+.nav .site-image{ height:52px; width:auto; display:block; }
+
+@media (max-width:520px){
+  .nav .site-image{ height:38px; }
+}
+
 /* Navigation */
 .nav{ display:flex; gap:12px; align-items:center; }
 .nav-logo{ display:inline-flex; align-items:center; }
