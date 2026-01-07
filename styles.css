@@ -300,3 +300,58 @@ body.cart-open{ overflow:hidden; }
   .newsletter-form .input-row{ flex-direction:column; align-items:stretch; }
   .newsletter-form .input-row button{ width:100%; }
 }
+
+
+/* --- Product card image layout (override) --- */
+.card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-image {
+  flex: 0 0 140px;
+  width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
+.card-image img {
+  width: 120px !important;
+  height: 120px !important;
+  max-width: 120px !important;
+  max-height: 120px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
+/* Keep the text from getting squeezed too narrow */
+.card .product-name,
+.card .desc,
+.card .meta-row {
+  min-width: 0;
+}
+
+/* Mobile: stack image below text */
+@media (max-width: 650px) {
+  .card {
+    flex-direction: column;
+  }
+
+  .card-image {
+    width: 100%;
+    flex: 0 0 auto;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .card-image img {
+    width: 160px !important;
+    height: 160px !important;
+    max-width: 160px !important;
+    max-height: 160px !important;
+  }
+}
