@@ -91,11 +91,12 @@ body.cart-open{ overflow:hidden; }
 
 /* Navigation */
 .nav{ display:flex; gap:12px; align-items:center; }
-.nav{ display:flex; gap:12px; align-items:center; flex:1; }
+.nav{ display:flex; gap:12px; align-items:center; }
 .nav-logo{ display:inline-flex; align-items:center; }
-.nav .site-logo{ height:48px; width:auto; object-fit:contain; }
-.nav .site-logo{ display:block; }
-.nav .cart-btn{ margin-left:auto; }
+.nav .site-logo{ height:48px; width:auto; object-fit:contain; display:block; }
+.nav-links{ margin-left:auto; display:flex; gap:12px; align-items:center; }
+/* ensure cart button stays to the right of nav-links */
+.nav .cart-btn{ margin-left:6px; }
 .nav a{ color:var(--text); text-decoration:none; padding:6px 8px; border-radius:4px; font-size:15px; }
 .nav a:hover{ background:rgba(0,0,0,0.03); }
 .cart-btn{ background:transparent; border:1px solid rgba(0,0,0,0.06); padding:6px 10px; border-radius:6px; cursor:pointer; }
