@@ -193,24 +193,42 @@ function createCard(item) {
 	const price = item['price'] || item['Price'] || '';
 	const quantity = item['quantity'] || item['Quantity'] || '';
 
-		// optional image support (display-only).
-		// Case-insensitive lookup for common header names and support several variants.
-		const desiredKeys = ['image_url','image url','image','photo','picture','img'];
+		// optional image support (display-only). Case-insensitive header matching + safe URL normalization.
 		let imgUrl = '';
-		const props = Object.keys(item || {});
-		const normMap = {};
-		props.forEach(p => { normMap[p.toLowerCase().replace(/[_\s]+/g,'')] = p; });
-		for (const dk of desiredKeys){
-			const nk = dk.toLowerCase().replace(/[_\s]+/g,'');
-			const prop = normMap[nk];
-			if (prop){ const val = item[prop]; if (val && String(val).trim()){ imgUrl = String(val).trim(); break; } }
-		}
-		// If image path is relative (not starting with protocol), convert to absolute using location.origin
-		if (imgUrl && !/^[a-z]+:\/\//i.test(imgUrl)){
-			imgUrl = (location && location.origin ? String(location.origin).replace(/\/$/,'') : '') + '/' + imgUrl.replace(/^\/+/, '');
+		try {
+			// map item keys to lowercase for flexible matching
+			const lower = {};
+			for (const [k, v] of Object.entries(item || {})) {
+				lower[String(k || '').trim().toLowerCase()] = String(v || '').trim();
+			}
+
+			// find an image field (case-insensitive)
+			imgUrl =
+				lower['image_url'] ||
+				lower['image url'] ||
+				lower['image'] ||
+				lower['photo'] ||
+				lower['picture'] ||
+				lower['img'] ||
+				'';
+
+			if (imgUrl) {
+				// normalize github pages folder casing: images/ -> Images/
+				imgUrl = imgUrl.replace(/^\/?images\//i, 'Images/');
+				imgUrl = imgUrl.replace(/\/images\//gi, '/Images/');
+
+				// if relative, make absolute
+				if (!/^https?:\/\//i.test(imgUrl)) {
+					imgUrl = `${location.origin}/${imgUrl.replace(/^\/+/, '')}`;
+				}
+			}
+		} catch (e) {
+			imgUrl = '';
 		}
 
-		const imgHtml = imgUrl ? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>` : '';
+		const imgHtml = imgUrl
+			? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>`
+			: '';
 
 	// Add data attributes so the cart logic can pick up item details. Do NOT include image in cart data.
 	el.innerHTML = `
