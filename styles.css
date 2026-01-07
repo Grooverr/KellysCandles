@@ -127,9 +127,29 @@ body.cart-open{ overflow:hidden; }
   border-radius:6px;
   box-shadow: 0 3px 8px rgba(0,0,0,0.04);
 }
-/* Product card image (optional, display-only) */
-.card-image{ width:100%; height:140px; overflow:hidden; border-radius:6px 6px 0 0; margin:-14px -14px 12px -14px; }
-.card-image img{ width:100%; height:100%; object-fit:cover; display:block; }
+/* Product card layout: stable two-column on desktop (text left, image right), stacked on mobile */
+.card{
+  display:grid;
+  grid-template-columns: minmax(180px, 1fr) 110px;
+  gap:14px;
+  align-items:start;
+}
+/* place image in the right column */
+.card-image{ grid-column:2; width:110px; height:110px; overflow:hidden; border-radius:6px; }
+.card-image img{ width:100%; height:100%; object-fit:contain; display:block; }
+/* ensure all other card children occupy the left column */
+.card > :not(.card-image){ grid-column:1; }
+
+/* Price/qty/button area: keep items on one row when possible, allow wrapping cleanly */
+.card .meta-row{ display:flex; gap:10px; align-items:center; }
+.card .meta-row + div{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.card button.add-to-cart{ white-space:nowrap; }
+
+@media (max-width:650px){
+  .card{ display:flex; flex-direction:column; }
+  .card-image{ width:140px; height:140px; align-self:center; margin:-14px -14px 12px -14px; border-radius:6px 6px 0 0; }
+  .card > :not(.card-image){ grid-column:auto; min-width:0; }
+}
 .product-name{ margin:0 0 6px 0; font-weight:700; font-size:16px; }
 .desc{ margin:0 0 8px 0; color:#5d5d5d; font-size:14px; }
 .meta-row{ display:flex; gap:10px; align-items:center; color:#6b6b6b; font-size:13px; }
