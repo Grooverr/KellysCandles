@@ -1,50 +1,3 @@
-/* Inventory card layout with right-aligned image */
-.card {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
-}
-
-/* Text area naturally fills remaining space */
-.card > :not(.card-image) {
-  flex: 1 1 auto;
-}
-
-/* Right-side image column */
-.card-image {
-  flex: 0 0 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: auto;
-}
-
-/* Product image sizing */
-.card-image img {
-  width: 110px;
-  height: 110px;
-  object-fit: contain;
-  border-radius: 10px;
-  display: block;
-}
-
-/* Mobile: stack image below text */
-@media (max-width: 650px) {
-  .card {
-    flex-direction: column;
-  }
-
-  .card-image {
-    flex: none;
-    margin-left: 0;
-    margin-top: 8px;
-  }
-
-  .card-image img {
-    width: 140px;
-    height: 140px;
-  }
-}
 /*
   styles.css
   Rustic inventory display styles for Kelley's Candles.
@@ -161,49 +114,181 @@ body.cart-open{ overflow:hidden; }
 .filters{ margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .filter-btn.active{ box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08); }
 
+/* Restore classic button styles for filters and add-to-cart */
+.filter-btn{
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.filter-btn:hover{ background: rgba(0,0,0,0.03); }
+
+.btn{
+  background: var(--wood);
+  color: var(--cream);
+  border: none;
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn:active{ transform: translateY(1px); }
+
 /* Inventory grid and cards */
 .product-grid{
   display:grid;
   grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
   gap:16px;
 }
-.card{
+/* ===============================
+   PRODUCT CARD LAYOUT - FIXED
+   =============================== */
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.card {
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,246,240,0.96));
-  border:1px solid rgba(0,0,0,0.06);
-  padding:14px;
-  border-radius:6px;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 16px;
+  border-radius: 8px;
   box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+  
+  /* Grid layout: left column for text, right column for image */
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  grid-template-rows: auto auto auto auto auto;
+  column-gap: 18px;
+  row-gap: 8px;
+  align-items: start;
 }
-/* Product card layout: stable two-column on desktop (text left, image right), stacked on mobile */
-.card{
-  display:grid;
-  grid-template-columns: minmax(180px, 1fr) 110px;
-  gap:14px;
-  align-items:start;
+
+/* Text content stays in left column */
+.card .product-name {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--soft-brown);
 }
-/* place image in the right column */
-.card-image{ grid-column:2; width:110px; height:110px; overflow:hidden; border-radius:6px; }
-.card-image img{ width:100%; height:100%; object-fit:contain; display:block; }
-/* ensure all other card children occupy the left column */
-.card > :not(.card-image){ grid-column:1; }
 
-/* Price/qty/button area: keep items on one row when possible, allow wrapping cleanly */
-.card .meta-row{ display:flex; gap:10px; align-items:center; }
-.card .meta-row + div{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.card button.add-to-cart{ white-space:nowrap; }
-
-@media (max-width:650px){
-  .card{ display:flex; flex-direction:column; }
-  .card-image{ width:140px; height:140px; align-self:center; margin:-14px -14px 12px -14px; border-radius:6px 6px 0 0; }
-  .card > :not(.card-image){ grid-column:auto; min-width:0; }
+.card .desc {
+  grid-column: 1;
+  margin: 0;
+  color: #5d5d5d;
+  font-size: 14px;
+  line-height: 1.4;
 }
-.product-name{ margin:0 0 6px 0; font-weight:700; font-size:16px; }
-.desc{ margin:0 0 8px 0; color:#5d5d5d; font-size:14px; }
-.meta-row{ display:flex; gap:10px; align-items:center; color:#6b6b6b; font-size:13px; }
-.price{ margin:8px 0 12px 0; font-weight:700; color:var(--soft-brown); }
-.btn{ background:var(--wood); color:var(--cream); border:none; padding:8px 10px; font-size:14px; border-radius:4px; cursor:pointer; }
-.btn:active{ transform:translateY(1px); }
 
+.card .desc:first-of-type {
+  grid-row: 2;
+}
+
+.card .desc:last-of-type {
+  grid-row: 3;
+}
+
+.card .meta-row {
+  grid-column: 1;
+  grid-row: 4;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: #6b6b6b;
+  margin-top: 4px;
+}
+
+.card > div:last-child {
+  grid-column: 1;
+  grid-row: 5;
+}
+
+/* Image column spans all rows on the right */
+.card-image {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 200ms ease;
+  transform-origin: center center;
+}
+
+/* Price styling */
+.price {
+  font-weight: 700;
+  color: var(--soft-brown);
+  font-size: 15px;
+}
+
+/* Button */
+.card button.add-to-cart {
+  margin-top: 8px;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* Mobile: stack image below text */
+@media (max-width: 650px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    row-gap: 12px;
+  }
+
+  .card .product-name,
+  .card .desc,
+  .card .meta-row,
+  .card > div:last-child {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .card-image {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    height: 180px;
+    margin-top: 8px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 200ms ease;
+    transform-origin: center center;
+  }
+}
+
+/* Temporary preview zoom for images to compensate for canvas padding */
+.card-image img { transform: scale(1.25); }
 /* Cart panel styles */
 .cart-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; opacity:1; transition:opacity 200ms ease; }
 .cart-panel{ position:fixed; right:0; top:0; height:100vh; width:420px; max-width:92%; background:var(--cream); box-shadow:-12px 0 36px rgba(0,0,0,0.18); z-index:1001; display:flex; flex-direction:column; overflow:hidden; transform:translateX(0); opacity:1; transition:transform 240ms ease, opacity 200ms ease; }
@@ -302,49 +387,52 @@ body.cart-open{ overflow:hidden; }
 }
 
 
-/* --- Product card image layout (override) --- */
+/* --- Product card image layout (GRID - prevents text overlap) --- */
 .card {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  column-gap: 16px;
+  align-items: start;
 }
 
+/* Put all normal card content in the left column */
+.card .product-name,
+.card .desc,
+.card .meta-row,
+.card .btn {
+  grid-column: 1;
+}
+
+/* Image goes in the right column and spans full card height */
 .card-image {
-  flex: 0 0 140px;
+  grid-column: 2;
+  grid-row: 1 / -1;
   width: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: auto;
 }
 
 .card-image img {
-  width: 120px !important;
-  height: 120px !important;
-  max-width: 120px !important;
-  max-height: 120px !important;
+  width: 150px !important;
+  height: 150px !important;
+  max-width: 150px !important;
+  max-height: 150px !important;
   object-fit: contain !important;
   display: block !important;
 }
 
-/* Keep the text from getting squeezed too narrow */
-.card .product-name,
-.card .desc,
-.card .meta-row {
-  min-width: 0;
-}
-
-/* Mobile: stack image below text */
+/* Mobile: stack image under text */
 @media (max-width: 650px) {
   .card {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    row-gap: 10px;
   }
 
   .card-image {
+    grid-column: 1;
+    grid-row: auto;
     width: 100%;
-    flex: 0 0 auto;
-    margin-left: 0;
     justify-content: center;
   }
 
@@ -355,3 +443,6 @@ body.cart-open{ overflow:hidden; }
     max-height: 160px !important;
   }
 }
+
+
+

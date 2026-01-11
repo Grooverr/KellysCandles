@@ -237,6 +237,9 @@ function createCard(item) {
 			? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>`
 			: '';
 
+	// Add has-image class if image is present
+	if (imgUrl) el.classList.add('has-image');
+
 	// Add data attributes so the cart logic can pick up item details. Do NOT include image in cart data.
 	el.innerHTML = `
 		${imgHtml}
