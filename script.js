@@ -162,7 +162,8 @@ let AVAILABLE_ITEMS = [];
 
 function normalizeSize(s){
 	if (!s) return '';
-	return String(s).toLowerCase().replace(/\s+/g,'');
+	// normalize to lowercase and remove any non-alphanumeric characters
+	return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
 function renderAvailable(){
@@ -171,10 +172,17 @@ function renderAvailable(){
 	inventory.innerHTML = '';
 	const active = document.querySelector('.filter-btn.active');
 	const filter = active ? (active.dataset.size || '') : '';
+	const normalizedFilter = normalizeSize(filter || '');
 	const items = (AVAILABLE_ITEMS || []).filter(it => {
-		if (!filter) return true;
+		if (!normalizedFilter) return true;
 		const sz = normalizeSize(it['size'] || it['Size'] || '');
-		return sz === filter || sz.includes(filter);
+		if (!sz) return false;
+		if (sz === normalizedFilter) return true;
+		// Build a regex that ensures the filter matches a whole token (surrounded by non-alphanumerics or boundaries)
+		const esc = String(normalizedFilter).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+		const re = new RegExp('(?:^|[^0-9a-z])' + esc + '(?:$|[^0-9a-z])');
+		if (re.test(it['size'] || it['Size'] || '')) return true;
+		return false;
 	});
 	if (items.length === 0){
 		inventory.innerHTML = '<div class="status">No items match that filter.</div>';
