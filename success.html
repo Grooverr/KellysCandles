@@ -1,18 +1,24 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- API base for Vercel serverless routes -->
+  <script>
+    window.API_BASE = "https://kellyscandles-vercel.vercel.app";
+  </script>
+
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Thank You | Kelley's Candles</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-</head>
 
-<script>
-  // ✅ Clear cart + checkout lock after a successful order
-  try { localStorage.removeItem('kellys_cart_v1'); } catch(e) {}
-  try { localStorage.removeItem('checkoutInProgress'); } catch(e) {}
-</script>
+  <!-- Clear cart as soon as this page loads (safe) -->
+  <script>
+    try { localStorage.removeItem("kellys_cart_v1"); } catch (e) {}
+    try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
+  </script>
+</head>
 
 <body>
   <header class="site-header">
@@ -20,8 +26,9 @@
       <div class="brand">
         <h1 class="site-title">Kelley's Candles</h1>
       </div>
+
       <nav class="nav">
-        <a href="/" class="logo-link nav-logo">
+        <a href="index.html" class="logo-link nav-logo">
           <img id="site-logo" src="Images/Logo.png" alt="Kelley's Candles logo" class="site-logo">
         </a>
         <a href="index.html">Home</a>
@@ -55,7 +62,7 @@
           • Need to fix your shipping address? Reply to your confirmation email as soon as possible.
         </p>
 
-        <!-- ✅ NEW: Real order details -->
+        <!-- Order details (pulled from Vercel API) -->
         <div id="order-details" style="margin-top:16px;">
           <p id="order-details-status">Loading order details…</p>
         </div>
@@ -80,11 +87,26 @@
   </footer>
 
   <script>
-    const VERCEL_API_BASE = "https://kellyscandles-vercel.vercel.app";
+    // Do NOT declare VERCEL_API_BASE (you were redeclaring it). Use window.API_BASE.
+    const API_BASE = window.API_BASE || "https://kellyscandles-vercel.vercel.app";
+
+    // Footer year
+    (function () {
+      const y = document.getElementById("year");
+      if (y) y.textContent = String(new Date().getFullYear());
+    })();
 
     function moneyPretty(cents, currency) {
       const cur = (currency || "usd").toUpperCase();
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format((cents || 0) / 100);
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format((Number(cents) || 0) / 100);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     }
 
     function addrToLines(addr) {
@@ -98,51 +120,94 @@
       return lines;
     }
 
+    async function fetchOrder(sessionId) {
+      // This endpoint MUST send proper CORS headers from Vercel.
+      // Expected response shape (recommended):
+      // { session: { ... }, items: [...], currency, totals: {...}, shipping: {...}, shipping_method: "..." }
+      const url = `${API_BASE}/api/get-checkout-session?session_id=${encodeURIComponent(sessionId)}`;
+      const res = await fetch(url, { method: "GET" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `Failed to load order details (${res.status})`);
+      return data;
+    }
+
     (async function () {
       const params = new URLSearchParams(window.location.search);
       const sessionId = params.get("session_id");
 
-      if (sessionId) {
-        document.getElementById("order-id-value").textContent = sessionId;
-        document.getElementById("order-id").style.display = "block";
-      }
-
+      const orderIdWrap = document.getElementById("order-id");
+      const orderIdValue = document.getElementById("order-id-value");
       const holder = document.getElementById("order-details");
       const statusEl = document.getElementById("order-details-status");
 
+      if (sessionId && orderIdWrap && orderIdValue) {
+        orderIdValue.textContent = sessionId;
+        orderIdWrap.style.display = "block";
+      }
+
       if (!sessionId) {
-        statusEl.textContent = "Order details unavailable (missing session id).";
+        if (statusEl) statusEl.textContent = "Order details unavailable (missing session id).";
         return;
       }
 
       try {
-        const url = `${VERCEL_API_BASE}/api/get-checkout-session?session_id=${encodeURIComponent(sessionId)}`;
-        const res = await fetch(url, { method: "GET" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to load order details.");
+        const data = await fetchOrder(sessionId);
 
-        const itemsRows = (data.items || []).map((it) => {
-          const unit = (it.unit_amount != null) ? moneyPretty(it.unit_amount, data.currency) : "—";
-          const line = moneyPretty(it.amount_subtotal, data.currency);
+        // Prefer a flat shape if your API already returns it, otherwise fall back to session fields.
+        const currency = data.currency || data.session?.currency || "usd";
+
+        // Items: your API might return data.items, or Stripe line_items inside session.
+        const items = Array.isArray(data.items)
+          ? data.items
+          : (data.session?.line_items?.data || []).map((li) => ({
+              description: li.description || "Item",
+              quantity: li.quantity ?? 1,
+              unit_amount: li.price?.unit_amount ?? null,
+              amount_subtotal: li.amount_subtotal ?? (li.price?.unit_amount ?? 0) * (li.quantity ?? 1),
+            }));
+
+        // Totals: prefer data.totals if your API provides it, else derive from session.
+        const totals = data.totals || {
+          subtotal: data.session?.amount_subtotal ?? 0,
+          shipping: data.session?.shipping_cost?.amount_total ?? 0,
+          tax: data.session?.total_details?.amount_tax ?? 0,
+          total: data.session?.amount_total ?? 0,
+        };
+
+        // Shipping
+        const shipping =
+          data.shipping ||
+          data.session?.shipping_details ||
+          { name: "", address: data.session?.shipping_details?.address };
+
+        const shipName = shipping?.name || data.session?.customer_details?.name || "";
+        const shipLines = addrToLines(shipping?.address);
+        const shipMethod =
+          data.shipping_method ||
+          data.session?.shipping_cost?.shipping_rate?.display_name ||
+          "Shipping";
+
+        const itemsRows = (items || []).map((it) => {
+          const desc = escapeHtml(it.description || it.name || "Item");
+          const qty = Number(it.quantity ?? 1);
+          const unit = (it.unit_amount != null) ? moneyPretty(it.unit_amount, currency) : "—";
+          const line = moneyPretty(it.amount_subtotal ?? 0, currency);
+
           return `
             <tr>
-              <td style="padding:6px 0;">${it.description}</td>
-              <td style="padding:6px 0; text-align:center;">${it.quantity}</td>
+              <td style="padding:6px 0;">${desc}</td>
+              <td style="padding:6px 0; text-align:center;">${qty}</td>
               <td style="padding:6px 0; text-align:right;">${unit}</td>
               <td style="padding:6px 0; text-align:right;">${line}</td>
             </tr>
           `;
         }).join("");
 
-        const shipName = data.shipping?.name || data.customer?.name || "";
-        const shipLines = addrToLines(data.shipping?.address);
-        const shipMethod = data.shipping_method || "Shipping";
-
         holder.innerHTML = `
           <hr style="margin:14px 0; opacity:.2;">
           <h3 style="margin:0 0 8px;">Order details</h3>
 
-          <p style="margin:0 0 8px;"><strong>Shipping method:</strong> ${shipMethod}</p>
+          <p style="margin:0 0 8px;"><strong>Shipping method:</strong> ${escapeHtml(shipMethod)}</p>
 
           <table style="width:100%; border-collapse:collapse;">
             <thead>
@@ -158,31 +223,31 @@
 
           <div style="margin-top:10px;">
             <div style="display:flex; justify-content:space-between; padding:4px 0;">
-              <span>Subtotal</span><span>${moneyPretty(data.totals.subtotal, data.currency)}</span>
+              <span>Subtotal</span><span>${moneyPretty(totals.subtotal, currency)}</span>
             </div>
             <div style="display:flex; justify-content:space-between; padding:4px 0;">
-              <span>Shipping</span><span>${moneyPretty(data.totals.shipping, data.currency)}</span>
+              <span>Shipping</span><span>${moneyPretty(totals.shipping, currency)}</span>
             </div>
             <div style="display:flex; justify-content:space-between; padding:4px 0;">
-              <span>Tax</span><span>${moneyPretty(data.totals.tax, data.currency)}</span>
+              <span>Tax</span><span>${moneyPretty(totals.tax, currency)}</span>
             </div>
             <div style="display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid rgba(0,0,0,.15); font-weight:700;">
-              <span>Total</span><span>${moneyPretty(data.totals.total, data.currency)}</span>
+              <span>Total</span><span>${moneyPretty(totals.total, currency)}</span>
             </div>
           </div>
 
           <div style="margin-top:10px;">
             <p style="margin:0 0 4px;"><strong>Shipping to:</strong></p>
-            <p style="margin:0;">${shipName ? `${shipName}<br>` : ""}${shipLines.join("<br>")}</p>
+            <p style="margin:0;">${shipName ? `${escapeHtml(shipName)}<br>` : ""}${shipLines.map(escapeHtml).join("<br>")}</p>
           </div>
         `;
       } catch (err) {
         console.error(err);
-        statusEl.textContent = "Could not load order details. Please check your confirmation email.";
+        if (statusEl) statusEl.textContent = "Could not load order details. Please check your confirmation email.";
       }
     })();
   </script>
 
-  <script src="script.js"></script>
+  <!-- IMPORTANT: don't load script.js on this page to avoid redeclared globals / cart UI logic -->
 </body>
 </html>
