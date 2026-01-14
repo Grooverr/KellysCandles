@@ -58,7 +58,7 @@ function formatAddress(addr) {
   return parts.join("\n");
 }
 
-async function sendEmail({ to, from, subject, html }) {
+async function sendEmail({ to, from, subject, html, replyTo }) {
   if (!process.env.RESEND_API_KEY || !from || !to) {
     console.log("[email] missing env vars", {
       hasResendKey: !!process.env.RESEND_API_KEY,
@@ -74,7 +74,7 @@ async function sendEmail({ to, from, subject, html }) {
       to,
       subject,
       html,
-      reply_to: "kelleysfarmcandles@gmail.com",
+      reply_to: replyTo || "kelleysfarmcandles@gmail.com",
     });
     console.log("[email] sent", result);
     return result;
@@ -88,6 +88,7 @@ async function sendEmail({ to, from, subject, html }) {
     return { error: true };
   }
 }
+
 
 function buildItemsTable(lines, currency) {
   const rows = (lines || [])
@@ -349,7 +350,14 @@ export default async function handler(req, res) {
 
       // Send store notification (non-fatal)
       try {
-        await sendEmail({ to: storeTo, from: storeFrom, subject: storeSubject, html: storeHtml });
+        await sendEmail({
+  to: storeTo,
+  from: storeFrom,
+  subject: storeSubject,
+  html: storeHtml,
+  replyTo: customerEmail || "kelleysfarmcandles@gmail.com",
+});
+
       } catch (err) {
         console.error("[email] store notification failed:", err?.message || err);
       }
