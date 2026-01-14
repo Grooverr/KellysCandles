@@ -8,12 +8,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // ✅ Allow list origins (match your create-checkout-session allowlist)
 const ALLOWED_ORIGINS = new Set([
   "https://grooverr.github.io",
-  // add when ready:
-  // "https://kelleyscandles.com",
-  // "https://www.kelleyscandles.com",
+  "https://kelleyscandles.com",
+  "https://www.kelleyscandles.com",
   "http://localhost:5500",
   "http://127.0.0.1:5500",
 ]);
+
 
 function setCors(req, res) {
   const origin = req.headers.origin;
@@ -28,7 +28,7 @@ function setCors(req, res) {
 export default async function handler(req, res) {
   setCors(req, res);
 
-  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
   try {
