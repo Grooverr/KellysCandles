@@ -1,23 +1,23 @@
 import Stripe from "stripe";
 
 const PRICE_MAP = {
-  "Apple Pie|16 oz": 1600,
-  "Love Spelling|16 oz": 1600,
-  "Black Raspberry|16 oz": 1600,
-  "Monkey Farts|16 oz": 1600,
-  "Lilac Bush|16 oz": 1600,
-  "Lavander|16 oz": 1600,
+  "Apple Pie|17 oz": 2200,
+  "Love Spelling|17 oz": 2200,
+  "Black Raspberry|17 oz": 2200,
+  "Monkey Farts|17 oz": 2200,
+  "Lilac Bush|17 oz": 2200,
+  "Lavander|17 oz": 2200,
 
-  "Apple Pie|12 oz": 1200,
-  "Black Raspberry|12 oz": 1200,
-  "Monkey Farts|12 oz": 1200,
-  "Lilac Bush|12 oz": 1200,
+  "Apple Pie|12 oz": 1400,
+  "Black Raspberry|12 oz": 1400,
+  "Monkey Farts|12 oz": 1400,
+  "Lilac Bush|12 oz": 1400,
 
-  "Apple Pie|6 oz": 600,
-  "Black Raspberry|6 oz": 600,
-  "Monkey Farts|6 oz": 600,
-  "Lilac Bush|6 oz": 600,
-  "Lavander|6 oz": 600,
+  "Apple Pie|6 oz": 700,
+  "Black Raspberry|6 oz": 700,
+  "Monkey Farts|6 oz": 700,
+  "Lilac Bush|6 oz": 700,
+  "Lavander|6 oz": 700,
 };
 
 const SCENT_ALIASES = {
@@ -56,14 +56,11 @@ function setCors(req, res) {
 
   if (origin && ALLOWED_ORIGINS.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    // If origin is missing (server-to-server) or not allowed, omit Allow-Origin.
-    // For browser calls, this blocks.
+    res.setHeader("Vary", "Origin");
   }
 
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Vary", "Origin");
 }
 
 function normalizeScent(raw, index) {
@@ -110,9 +107,9 @@ export default async function handler(req, res) {
   // ✅ ALWAYS set CORS headers first
   setCors(req, res);
 
-  // ✅ Respond to preflight immediately
+  // ✅ Respond to preflight immediately (use 200 for Safari stability)
   if (req.method === "OPTIONS") {
-    return res.status(204).end();
+    return res.status(200).end();
   }
 
   // ✅ Only POST
@@ -139,15 +136,20 @@ export default async function handler(req, res) {
       }
       const key = `${scent}|${size}`;
       const unit_amount = PRICE_MAP[key];
-if (!unit_amount) {
-  const availableForScent = Object.keys(PRICE_MAP).filter(k => k.startsWith(`${scent}|`));
-  const err = new Error(
-    `No price found for "${key}" (cart item index ${index}). ` +
-    (availableForScent.length ? `Available: ${availableForScent.join(", ")}` : "No prices exist for this scent.")
-  );
-  err.statusCode = 400;
-  throw err;
-}
+
+      if (!unit_amount) {
+        const availableForScent = Object.keys(PRICE_MAP).filter((k) =>
+          k.startsWith(`${scent}|`)
+        );
+        const err = new Error(
+          `No price found for "${key}" (cart item index ${index}). ` +
+            (availableForScent.length
+              ? `Available: ${availableForScent.join(", ")}`
+              : "No prices exist for this scent.")
+        );
+        err.statusCode = 400;
+        throw err;
+      }
 
       return { qty, scent, size, unit_amount, key };
     });
@@ -168,51 +170,51 @@ if (!unit_amount) {
       .join(", ");
 
     // ✅ Use your canonical site base
-    // (If you later move to your domain, swap these to your domain)
     const success_url =
       "https://www.kelleyscandles.com/success.html?session_id={CHECKOUT_SESSION_ID}";
     const cancel_url = "https://www.kelleyscandles.com/cancel.html";
 
     const session = await stripe.checkout.sessions.create({
-  mode: "payment",
-  line_items,
-  success_url,
-  cancel_url,
+      mode: "payment",
+      line_items,
+      success_url,
+      cancel_url,
 
-  // ✅ Helps webhook have reliable email, and Stripe can send receipt if enabled
-  customer_email: typeof customerEmail === "string" ? customerEmail.trim() : undefined,
+      // ✅ Helps webhook have reliable email, and Stripe can send receipt if enabled
+      customer_email:
+        typeof customerEmail === "string" ? customerEmail.trim() : undefined,
 
-  // ✅ REQUIRED: always collect phone + shipping address
-  phone_number_collection: { enabled: true },
-  shipping_address_collection: { allowed_countries: ["US"] },
+      // ✅ REQUIRED: always collect phone + shipping address
+      phone_number_collection: { enabled: true },
+      shipping_address_collection: { allowed_countries: ["US"] },
 
-  // ✅ REQUIRED: shipping method + shipping cost (shows in Stripe Checkout)
-  shipping_options: [
-    {
-      shipping_rate_data: {
-        display_name: "Standard Shipping",
-        type: "fixed_amount",
-        fixed_amount: { amount: 795, currency: "usd" }, // $7.95
-        delivery_estimate: {
-          minimum: { unit: "business_day", value: 3 },
-          maximum: { unit: "business_day", value: 7 },
+      // ✅ REQUIRED: shipping method + shipping cost (shows in Stripe Checkout)
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            display_name: "Standard Shipping",
+            type: "fixed_amount",
+            fixed_amount: { amount: 795, currency: "usd" }, // $7.95
+            delivery_estimate: {
+              minimum: { unit: "business_day", value: 3 },
+              maximum: { unit: "business_day", value: 7 },
+            },
+          },
         },
+      ],
+
+      // ✅ Useful for your webhook, but don't trust it for totals/prices
+      metadata: {
+        items: itemsSummary,
+        source: "github-pages",
+        fulfillment: "shipping",
       },
-    },
-  ],
-
-  // ✅ Useful for your webhook, but don't trust it for totals/prices
-  metadata: {
-    items: itemsSummary,
-    source: "github-pages",
-    fulfillment: "shipping",
-  },
-});
-
+    });
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
-    const status = err?.statusCode && Number.isInteger(err.statusCode) ? err.statusCode : 500;
+    const status =
+      err?.statusCode && Number.isInteger(err.statusCode) ? err.statusCode : 500;
     console.error("[checkout] error:", err);
     return res.status(status).json({
       error: err.message || "Checkout failed",
