@@ -103,6 +103,21 @@ function normalizeSize(raw, index) {
   return `${sizeNum} oz`;
 }
 
+function getTotalQty(normalizedItems) {
+  return normalizedItems.reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
+}
+
+function getTieredShipping(totalQty) {
+  // Adjust these tiers anytime
+  if (totalQty <= 1) return { amount: 600, label: "Standard Shipping (1 candle)" };     // $6.00
+  if (totalQty <= 3) return { amount: 900, label: "Standard Shipping (2–3 candles)" }; // $9.00
+  return { amount: 1200, label: "Standard Shipping (4+ candles)" };                    // $12.00
+}
+
+
+
+
+
 export default async function handler(req, res) {
   // ✅ ALWAYS set CORS headers first
   setCors(req, res);
@@ -164,6 +179,10 @@ export default async function handler(req, res) {
       },
     }));
 
+    const totalQty = getTotalQty(normalizedItems);
+    const shipping = getTieredShipping(totalQty);
+
+
     // Optional: simple cart summary for metadata
     const itemsSummary = normalizedItems
       .map((i) => `${i.qty}x ${i.scent} (${i.size})`)
@@ -192,9 +211,9 @@ export default async function handler(req, res) {
       shipping_options: [
         {
           shipping_rate_data: {
-            display_name: "Standard Shipping",
+            display_name: shipping.label,
             type: "fixed_amount",
-            fixed_amount: { amount: 795, currency: "usd" }, // $7.95
+            fixed_amount: { amount: shipping.amount, currency: "usd" },
             delivery_estimate: {
               minimum: { unit: "business_day", value: 3 },
               maximum: { unit: "business_day", value: 7 },
@@ -203,11 +222,16 @@ export default async function handler(req, res) {
         },
       ],
 
+
+
       // ✅ Useful for your webhook, but don't trust it for totals/prices
       metadata: {
         items: itemsSummary,
         source: "github-pages",
         fulfillment: "shipping",
+        shipping_tier: shipping.label,
+        shipping_amount: String(shipping.amount),
+        total_qty: String(totalQty),
       },
     });
 
