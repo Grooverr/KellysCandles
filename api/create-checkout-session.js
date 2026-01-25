@@ -12,11 +12,15 @@ const PRICE_MAP = {
   "Black Raspberry|12 oz": 1400,
   "Monkey Farts|12 oz": 1400,
   "Lilac Bush|12 oz": 1400,
+    "Love Spelling|12 oz": 1400,
+  "Lavander|12 oz": 1400,
+
 
   "Apple Pie|6 oz": 700,
   "Black Raspberry|6 oz": 700,
   "Monkey Farts|6 oz": 700,
   "Lilac Bush|6 oz": 700,
+  "Love Spelling|6 oz": 700,
   "Lavander|6 oz": 700,
 };
 
