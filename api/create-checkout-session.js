@@ -78,7 +78,9 @@ function normalizeScent(raw, index) {
     .trim();
   const canonical = SCENT_ALIASES[cleanedKey] || cleaned;
   if (ENFORCE_SCENT_ALLOWLIST && !VALID_SCENTS.has(canonical)) {
-    const err = new Error(`Unknown scent "${cleaned}" for cart item at index ${index}`);
+    const err = new Error(
+      `Unknown scent "${cleaned}" for cart item at index ${index}`
+    );
     err.statusCode = 400;
     throw err;
   }
@@ -114,10 +116,6 @@ function getTieredShipping(totalQty) {
   return { amount: 1200, label: "Standard Shipping (4+ candles)" };                    // $12.00
 }
 
-
-
-
-
 export default async function handler(req, res) {
   // ✅ ALWAYS set CORS headers first
   setCors(req, res);
@@ -144,11 +142,15 @@ export default async function handler(req, res) {
       const scent = normalizeScent(nameSource, index);
       const size = normalizeSize(item.size, index);
       const qty = Math.max(1, Number(item.qty || 1));
+
       if (qty > 10) {
-        const err = new Error(`Quantity limit exceeded for cart item at index ${index}`);
+        const err = new Error(
+          `Quantity limit exceeded for cart item at index ${index}`
+        );
         err.statusCode = 400;
         throw err;
       }
+
       const key = `${scent}|${size}`;
       const unit_amount = PRICE_MAP[key];
 
@@ -179,9 +181,23 @@ export default async function handler(req, res) {
       },
     }));
 
-    const totalQty = getTotalQty(normalizedItems);
-    const shipping = getTieredShipping(totalQty);
+    const FREE_SHIPPING_THRESHOLD_CENTS = 10000; // $100.00
 
+    const totalQty = getTotalQty(normalizedItems);
+    const tieredShipping = getTieredShipping(totalQty);
+
+    // ✅ Compute subtotal server-side (tamper-proof)
+    const subtotalCents = normalizedItems.reduce(
+      (sum, i) => sum + i.unit_amount * i.qty,
+      0
+    );
+
+    // ✅ Apply free shipping if subtotal >= $100
+    const freeShippingApplied = subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS;
+
+    const finalShipping = freeShippingApplied
+      ? { amount: 0, label: "Free Shipping (Orders $100+)" }
+      : tieredShipping;
 
     // Optional: simple cart summary for metadata
     const itemsSummary = normalizedItems
@@ -207,13 +223,13 @@ export default async function handler(req, res) {
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ["US"] },
 
-      // ✅ REQUIRED: shipping method + shipping cost (shows in Stripe Checkout)
+      // ✅ Shipping option (tiered under $100; free at $100+)
       shipping_options: [
         {
           shipping_rate_data: {
-            display_name: shipping.label,
+            display_name: finalShipping.label,
             type: "fixed_amount",
-            fixed_amount: { amount: shipping.amount, currency: "usd" },
+            fixed_amount: { amount: finalShipping.amount, currency: "usd" },
             delivery_estimate: {
               minimum: { unit: "business_day", value: 3 },
               maximum: { unit: "business_day", value: 7 },
@@ -222,15 +238,18 @@ export default async function handler(req, res) {
         },
       ],
 
-
-
       // ✅ Useful for your webhook, but don't trust it for totals/prices
       metadata: {
         items: itemsSummary,
         source: "github-pages",
         fulfillment: "shipping",
-        shipping_tier: shipping.label,
-        shipping_amount: String(shipping.amount),
+
+        subtotal_cents: String(subtotalCents),
+        free_shipping_applied: freeShippingApplied ? "true" : "false",
+        free_shipping_threshold_cents: String(FREE_SHIPPING_THRESHOLD_CENTS),
+
+        shipping_tier: finalShipping.label,
+        shipping_amount: String(finalShipping.amount),
         total_qty: String(totalQty),
       },
     });
