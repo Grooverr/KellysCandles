@@ -446,3 +446,82 @@ body.cart-open{ overflow:hidden; }
 
 
 
+/* =========================================================
+   INFO PAGES – REALISTIC TORN PAPER (NOISE MASK)
+   ========================================================= */
+
+.info-page {
+  padding: 32px 0 72px;
+}
+
+.paper {
+  position: relative;
+  background-color: #fdfaf5;
+  padding: 40px 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+  overflow: visible;
+
+  /* notebook grid */
+  background-image:
+    linear-gradient(rgba(0,0,0,0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.016) 1px, transparent 1px);
+  background-size: 100% 34px, 34px 100%;
+}
+
+.paper > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Use a “torn” mask made from SVG noise (embedded, no file needed) */
+.paper::before,
+.paper::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  width: calc(100% + 4px);
+  height: 34px;
+  background: #fdfaf5;
+  pointer-events: none;
+  z-index: 3;
+
+  /* torn edge mask */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='80' viewBox='0 0 800 80'%3E%3Cdefs%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 3 -1.2'/%3E%3C/filter%3E%3ClinearGradient id='fade' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='black'/%3E%3Cstop offset='.55' stop-color='black'/%3E%3Cstop offset='1' stop-color='transparent'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='800' height='80' fill='url(%23fade)'/%3E%3Crect width='800' height='80' filter='url(%23n)' opacity='.85'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='800' height='80' fill='black' mask='url(%23m)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 800px 34px;
+  -webkit-mask-repeat: repeat-x;
+
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='80' viewBox='0 0 800 80'%3E%3Cdefs%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 3 -1.2'/%3E%3C/filter%3E%3ClinearGradient id='fade' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='black'/%3E%3Cstop offset='.55' stop-color='black'/%3E%3Cstop offset='1' stop-color='transparent'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='800' height='80' fill='url(%23fade)'/%3E%3Crect width='800' height='80' filter='url(%23n)' opacity='.85'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='800' height='80' fill='black' mask='url(%23m)'/%3E%3C/svg%3E");
+  mask-size: 800px 34px;
+  mask-repeat: repeat-x;
+}
+
+/* Top torn edge */
+.paper::before {
+  top: -22px;
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,0.14));
+}
+
+/* Bottom torn edge (flip) */
+.paper::after {
+  bottom: -22px;
+  transform: rotate(180deg);
+  filter: drop-shadow(0 -3px 8px rgba(0,0,0,0.12));
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .paper {
+    padding: 26px 20px;
+    background-size: 100% 30px, 30px 100%;
+  }
+  .paper::before,
+  .paper::after {
+    height: 26px;
+    -webkit-mask-size: 700px 26px;
+    mask-size: 700px 26px;
+    top: -18px;
+    bottom: -18px;
+  }
+}
