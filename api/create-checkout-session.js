@@ -4,6 +4,10 @@ export const config = { runtime: "nodejs" };
 
 import Stripe from "stripe";
 
+console.log("[env] node", process.version);
+console.log("[env] has STRIPE_LIVE_KEY", !!process.env.STRIPE_LIVE_KEY);
+
+
 const PRICE_MAP = {
   // 🔽 TEMP: $1 smoke test
   "Apple Pie|17 oz": 100,
@@ -50,7 +54,10 @@ const ENFORCE_SCENT_ALLOWLIST = false;
 
 const stripe = new Stripe(process.env.STRIPE_LIVE_KEY, {
   apiVersion: "2024-06-20",
+  maxNetworkRetries: 2,
+  timeout: 20000,
 });
+
 
 // ✅ Allow list origins (add your custom domain later)
 const ALLOWED_ORIGINS = new Set([
