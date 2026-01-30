@@ -41,7 +41,7 @@ const VALID_SCENTS = new Set(
 
 const ENFORCE_SCENT_ALLOWLIST = false;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.STRIPE_LIVE_KEY, {
   apiVersion: "2024-06-20",
 });
 
