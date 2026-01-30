@@ -49,12 +49,19 @@ const VALID_SCENTS = new Set(
 
 const ENFORCE_SCENT_ALLOWLIST = false;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_LIVE_KEY
-, {
+const stripe = new Stripe(STRIPE_KEY, {
   apiVersion: "2024-06-20",
   maxNetworkRetries: 2,
   timeout: 20000,
 });
+
+
+const STRIPE_KEY =
+  process.env.STRIPE_LIVE_KEY || process.env.STRIPE_SECRET_KEY || "";
+
+console.log("[stripe] key prefix =", STRIPE_KEY.slice(0, 7));
+
+
 
 
 // ✅ Allow list origins (add your custom domain later)
