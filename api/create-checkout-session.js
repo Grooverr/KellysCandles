@@ -220,6 +220,9 @@ export default async function handler(req, res) {
       "https://www.kelleyscandles.com/success.html?session_id={CHECKOUT_SESSION_ID}";
     const cancel_url = "https://www.kelleyscandles.com/cancel.html";
 
+console.log("[smoke-test] Apple Pie 17oz cents =", PRICE_MAP["Apple Pie|17 oz"]);
+
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,

@@ -160,7 +160,6 @@ export default async function handler(req, res) {
       // NOTE: event.data.object is "lite". Retrieve full session for shipping rate name & totals.
       const liteSession = event.data.object;
       const sessionId = liteSession.id;
-console.log("[smoke-test] Apple Pie 17oz cents =", PRICE_MAP["Apple Pie|17 oz"]);
 
       // Retrieve expanded session so we can show shipping method name
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
