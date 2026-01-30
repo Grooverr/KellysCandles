@@ -1,7 +1,4 @@
 export const config = { runtime: "nodejs" };
-
-
-
 import Stripe from "stripe";
 
 console.log("[env] node", process.version);

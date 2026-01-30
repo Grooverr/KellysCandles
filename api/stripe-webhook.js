@@ -1,7 +1,6 @@
-export const config = { runtime: "nodejs" };
-
 
 // api/stripe-webhook.js
+export const config = { runtime: "nodejs" };
 import Stripe from "stripe";
 import { Resend } from "resend";
 
