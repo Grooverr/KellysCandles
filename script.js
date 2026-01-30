@@ -53,10 +53,16 @@ function lockCheckoutUI(isLocked, btn, statusEl, message) {
 }
 
 async function runCheckoutOnce({ btn, statusEl, run }) {
-  // memory + localStorage lock
-  if (checkoutSubmitting) return;
+  if (checkoutSubmitting) {
+    console.log("[checkout] blocked: checkoutSubmitting already true");
+    return;
+  }
+
   try {
-    if (localStorage.getItem("checkoutInProgress") === "1") return;
+    if (localStorage.getItem("checkoutInProgress") === "1") {
+      console.log("[checkout] blocked: checkoutInProgress already set");
+      return;
+    }
   } catch (e) {}
 
   checkoutSubmitting = true;
@@ -64,15 +70,35 @@ async function runCheckoutOnce({ btn, statusEl, run }) {
 
   lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkout…");
 
+  let redirected = false;
+
+  // If we *don't* actually leave the page, auto-unlock.
+  const failsafe = setTimeout(() => {
+    if (!redirected) {
+      console.warn("[checkout] failsafe unlock triggered (no redirect detected)");
+      checkoutSubmitting = false;
+      try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
+      lockCheckoutUI(false, btn, statusEl, "Checkout didn’t start. Try again.");
+    }
+  }, 8000);
+
   try {
-    await run(); // your existing checkout logic
+    await run();
+
+    // If run() completes normally, assume it initiated redirect.
+    redirected = true;
+    clearTimeout(failsafe);
+
   } catch (err) {
+    clearTimeout(failsafe);
     console.error("[checkout] failed:", err);
+
     lockCheckoutUI(false, btn, statusEl, "Checkout failed. Please try again.");
     checkoutSubmitting = false;
     try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
   }
 }
+
 
 
 
@@ -456,6 +482,9 @@ function initCartUI(){
 	const cartPanel = document.getElementById('cart-panel');
 	const cartClose = document.getElementById('cart-close');
 	cartBtn && cartBtn.addEventListener('click', () => {
+		try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
+checkoutSubmitting = false;
+
 		cartOverlay.classList.remove('hidden');
 		cartPanel.classList.remove('hidden');
 		document.body.classList.add('cart-open');
