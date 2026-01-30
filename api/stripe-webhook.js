@@ -2,7 +2,7 @@
 import Stripe from "stripe";
 import { Resend } from "resend";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.STRIPE_LIVE_KEY, {
   apiVersion: "2024-06-20",
 });
 
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_LIVE_WEBHOOK_SECRET
     );
   } catch (err) {
     console.error("[webhook] signature verification failed:", err.message);
