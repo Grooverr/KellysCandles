@@ -1,7 +1,10 @@
 import Stripe from "stripe";
 
 const PRICE_MAP = {
-  "Apple Pie|17 oz": 2200,
+  // 🔽 TEMP: $1 smoke test
+  "Apple Pie|17 oz": 100,
+
+  // everything else unchanged
   "Love Spelling|17 oz": 2200,
   "Black Raspberry|17 oz": 2200,
   "Monkey Farts|17 oz": 2200,
@@ -12,9 +15,8 @@ const PRICE_MAP = {
   "Black Raspberry|12 oz": 1400,
   "Monkey Farts|12 oz": 1400,
   "Lilac Bush|12 oz": 1400,
-    "Love Spelling|12 oz": 1400,
+  "Love Spelling|12 oz": 1400,
   "Lavander|12 oz": 1400,
-
 
   "Apple Pie|6 oz": 700,
   "Black Raspberry|6 oz": 700,
@@ -23,6 +25,7 @@ const PRICE_MAP = {
   "Love Spelling|6 oz": 700,
   "Lavander|6 oz": 700,
 };
+
 
 const SCENT_ALIASES = {
   "black raspberry vanilla bean": "Black Raspberry",
