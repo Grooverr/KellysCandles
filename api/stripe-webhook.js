@@ -21,12 +21,7 @@ const stripe = new Stripe(STRIPE_KEY, {
   apiVersion: "2024-06-20",
 });
 
-// ─────────────────────────────────────────────────────────────
-// Webhook signing secret — also environment-aware now.
-// Previously hardcoded to STRIPE_LIVE_WEBHOOK_SECRET only,
-// which meant local dev / test webhooks would always fail
-// signature verification.
-// ─────────────────────────────────────────────────────────────
+
 const WEBHOOK_SECRET =
   process.env.NODE_ENV === "production"
     ? process.env.STRIPE_LIVE_WEBHOOK_SECRET

@@ -29,7 +29,7 @@ const stripe = new Stripe(STRIPE_KEY, {
 
 
 const PRICE_MAP = {
-  "Apple Pie|17 oz": 2200,   // ← smoke-test $1 removed; restore real price
+  "Apple Pie|17 oz": 100,   // ← smoke-test $1 removed; restore real price
   "Love Spelling|17 oz": 2200,
   "Black Raspberry|17 oz": 2200,
   "Monkey Farts|17 oz": 2200,
