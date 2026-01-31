@@ -1,15 +1,35 @@
 export const config = { runtime: "nodejs" };
 import Stripe from "stripe";
 
+
+const STRIPE_KEY =
+  process.env.NODE_ENV === "production"
+    ? process.env.STRIPE_LIVE_KEY
+    : process.env.STRIPE_SECRET_KEY;
+
+if (!STRIPE_KEY) {
+  throw new Error(
+    `[create-checkout-session] Missing Stripe key. ` +
+    `NODE_ENV=${process.env.NODE_ENV} — ` +
+    `set STRIPE_LIVE_KEY (production) or STRIPE_SECRET_KEY (development).`
+  );
+}
+
 console.log("[env] node", process.version);
-console.log("[env] has STRIPE_LIVE_KEY", !!process.env.STRIPE_LIVE_KEY);
+console.log("[stripe] NODE_ENV =", process.env.NODE_ENV);
+console.log("[stripe] key prefix =", STRIPE_KEY.slice(0, 7));
+// ↑ Now this actually runs. You'll see "sk_live" or "sk_test"
+//   in your Vercel logs, confirming which mode is active.
+
+const stripe = new Stripe(STRIPE_KEY, {
+  apiVersion: "2024-06-20",
+  maxNetworkRetries: 2,
+  timeout: 20000,
+});
 
 
 const PRICE_MAP = {
-  // 🔽 TEMP: $1 smoke test
-  "Apple Pie|17 oz": 100,
-
-  // everything else unchanged
+  "Apple Pie|17 oz": 2200,   // ← smoke-test $1 removed; restore real price
   "Love Spelling|17 oz": 2200,
   "Black Raspberry|17 oz": 2200,
   "Monkey Farts|17 oz": 2200,
@@ -49,22 +69,8 @@ const VALID_SCENTS = new Set(
 
 const ENFORCE_SCENT_ALLOWLIST = false;
 
-const stripe = new Stripe(STRIPE_KEY, {
-  apiVersion: "2024-06-20",
-  maxNetworkRetries: 2,
-  timeout: 20000,
-});
 
-
-const STRIPE_KEY =
-  process.env.STRIPE_LIVE_KEY || process.env.STRIPE_SECRET_KEY || "";
-
-console.log("[stripe] key prefix =", STRIPE_KEY.slice(0, 7));
-
-
-
-
-// ✅ Allow list origins (add your custom domain later)
+// ✅ Allow list origins
 const ALLOWED_ORIGINS = new Set([
   "https://grooverr.github.io",
   "https://kelleyscandles.com",
@@ -235,9 +241,6 @@ export default async function handler(req, res) {
     const success_url =
       "https://www.kelleyscandles.com/success.html?session_id={CHECKOUT_SESSION_ID}";
     const cancel_url = "https://www.kelleyscandles.com/cancel.html";
-
-console.log("[smoke-test] Apple Pie 17oz cents =", PRICE_MAP["Apple Pie|17 oz"]);
-
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

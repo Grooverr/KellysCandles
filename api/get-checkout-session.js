@@ -2,7 +2,21 @@
 export const config = { runtime: "nodejs" };
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_LIVE_KEY, {
+
+const STRIPE_KEY =
+  process.env.NODE_ENV === "production"
+    ? process.env.STRIPE_LIVE_KEY
+    : process.env.STRIPE_SECRET_KEY;
+
+if (!STRIPE_KEY) {
+  throw new Error(
+    `[get-checkout-session] Missing Stripe key. ` +
+    `NODE_ENV=${process.env.NODE_ENV} — ` +
+    `set STRIPE_LIVE_KEY (production) or STRIPE_SECRET_KEY (development).`
+  );
+}
+
+const stripe = new Stripe(STRIPE_KEY, {
   apiVersion: "2024-06-20",
 });
 

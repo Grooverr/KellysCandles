@@ -1,12 +1,44 @@
-
 // api/stripe-webhook.js
 export const config = { runtime: "nodejs" };
 import Stripe from "stripe";
 import { Resend } from "resend";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_LIVE_KEY, {
+
+const STRIPE_KEY =
+  process.env.NODE_ENV === "production"
+    ? process.env.STRIPE_LIVE_KEY
+    : process.env.STRIPE_SECRET_KEY;
+
+if (!STRIPE_KEY) {
+  throw new Error(
+    `[stripe-webhook] Missing Stripe key. ` +
+    `NODE_ENV=${process.env.NODE_ENV} — ` +
+    `set STRIPE_LIVE_KEY (production) or STRIPE_SECRET_KEY (development).`
+  );
+}
+
+const stripe = new Stripe(STRIPE_KEY, {
   apiVersion: "2024-06-20",
 });
+
+// ─────────────────────────────────────────────────────────────
+// Webhook signing secret — also environment-aware now.
+// Previously hardcoded to STRIPE_LIVE_WEBHOOK_SECRET only,
+// which meant local dev / test webhooks would always fail
+// signature verification.
+// ─────────────────────────────────────────────────────────────
+const WEBHOOK_SECRET =
+  process.env.NODE_ENV === "production"
+    ? process.env.STRIPE_LIVE_WEBHOOK_SECRET
+    : process.env.STRIPE_TEST_WEBHOOK_SECRET;
+
+if (!WEBHOOK_SECRET) {
+  throw new Error(
+    `[stripe-webhook] Missing webhook secret. ` +
+    `NODE_ENV=${process.env.NODE_ENV} — ` +
+    `set STRIPE_LIVE_WEBHOOK_SECRET (production) or STRIPE_TEST_WEBHOOK_SECRET (development).`
+  );
+}
 
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -148,7 +180,7 @@ export default async function handler(req, res) {
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
-      process.env.STRIPE_LIVE_WEBHOOK_SECRET
+      WEBHOOK_SECRET   // ← was hardcoded env var; now uses the resolved const
     );
   } catch (err) {
     console.error("[webhook] signature verification failed:", err.message);
@@ -304,7 +336,7 @@ export default async function handler(req, res) {
       const customerFrom = customerFromEmail ? `Kelley's Candles <${customerFromEmail}>` : "";
 
       const orderShort = sessionId ? sessionId.slice(-8) : "";
-      const customerSubject = `Order confirmed — Kelley’s Candles (${orderShort})`;
+      const customerSubject = `Order confirmed — Kelley's Candles (${orderShort})`;
 
       const customerHtml = `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; max-width:680px; margin:0 auto; color:#111;">
@@ -341,13 +373,13 @@ export default async function handler(req, res) {
 
           <h3 style="margin:18px 0 8px;">What happens next</h3>
           <ul style="margin:0; padding-left:18px;">
-            <li>We’ll begin preparing your candles for shipment.</li>
-            <li>When your order ships, you’ll receive a shipping update (and tracking if available).</li>
+            <li>We'll begin preparing your candles for shipment.</li>
+            <li>When your order ships, you'll receive a shipping update (and tracking if available).</li>
             <li>If your shipping address needs a correction, reply to this email as soon as possible.</li>
           </ul>
 
           <p style="margin:16px 0 0; font-size:12px; color:#666;">
-            Questions? Reply to this email and we’ll help.
+            Questions? Reply to this email and we'll help.
           </p>
         </div>
       `;
