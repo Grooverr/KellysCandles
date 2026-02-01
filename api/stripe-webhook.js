@@ -2,8 +2,14 @@
 export const config = { runtime: "nodejs" };
 import Stripe from "stripe";
 import { Resend } from "resend";
+import { createShipment } from "./lib/easypost.js";
 
-
+// ─────────────────────────────────────────────────────────────
+// Stripe key — same resolution logic as the other two routes.
+// Previous code used: STRIPE_SECRET_KEY || STRIPE_LIVE_KEY
+//   • No NODE_ENV check → could silently use a test key in prod
+//   • Priority was reversed vs create-checkout → inconsistent
+// ─────────────────────────────────────────────────────────────
 const STRIPE_KEY =
   process.env.NODE_ENV === "production"
     ? process.env.STRIPE_LIVE_KEY
@@ -21,7 +27,12 @@ const stripe = new Stripe(STRIPE_KEY, {
   apiVersion: "2024-06-20",
 });
 
-
+// ─────────────────────────────────────────────────────────────
+// Webhook signing secret — also environment-aware now.
+// Previously hardcoded to STRIPE_LIVE_WEBHOOK_SECRET only,
+// which meant local dev / test webhooks would always fail
+// signature verification.
+// ─────────────────────────────────────────────────────────────
 const WEBHOOK_SECRET =
   process.env.NODE_ENV === "production"
     ? process.env.STRIPE_LIVE_WEBHOOK_SECRET
@@ -258,6 +269,64 @@ export default async function handler(req, res) {
         shipping_method: shippingMethod,
       });
 
+      // ─────────────────────────────────────────────────────────────
+      // CREATE SHIPPING LABEL (EasyPost)
+      // ─────────────────────────────────────────────────────────────
+      let trackingCode = null;
+      let trackingUrl = null;
+      let labelUrl = null;
+      let shippingError = null;
+
+      try {
+        // Parse items from line items for weight calculation
+        const itemsForShipping = lines.map((l) => ({
+          // Extract size from item name (e.g., "Apple Pie • 12 oz" → "12 oz")
+          size: l.name.match(/(\d+\s*oz)/i)?.[1] || "12 oz",
+          qty: l.qty,
+          scent: l.name.split("•")[0]?.trim() || l.name,
+        }));
+
+        console.log("[webhook] Creating EasyPost shipment", {
+          orderId: sessionId,
+          items: itemsForShipping,
+        });
+
+        const shipmentResult = await createShipment({
+          toAddress: {
+            name: shippingDetails?.name || customerName,
+            line1: shippingDetails?.address?.line1 || "",
+            line2: shippingDetails?.address?.line2 || "",
+            city: shippingDetails?.address?.city || "",
+            state: shippingDetails?.address?.state || "",
+            postal_code: shippingDetails?.address?.postal_code || "",
+            country: shippingDetails?.address?.country || "US",
+            phone: customerPhone,
+          },
+          items: itemsForShipping,
+          orderId: sessionId,
+        });
+
+        if (shipmentResult.success) {
+          trackingCode = shipmentResult.trackingCode;
+          trackingUrl = shipmentResult.trackingUrl;
+          labelUrl = shipmentResult.labelUrl;
+
+          console.log("[webhook] Shipping label created", {
+            trackingCode,
+            carrier: shipmentResult.carrier,
+            service: shipmentResult.service,
+            cost: shipmentResult.cost,
+          });
+        } else {
+          shippingError = shipmentResult.error;
+          console.error("[webhook] Shipping label creation failed:", shippingError);
+        }
+      } catch (err) {
+        shippingError = err.message;
+        console.error("[webhook] EasyPost error:", err);
+      }
+      // ─────────────────────────────────────────────────────────────
+
       const shippingHtml = `
         <h3 style="margin:18px 0 8px;">Shipping</h3>
         <div style="background:#fff;border:1px solid #eee;border-radius:12px;padding:12px;">
@@ -321,6 +390,27 @@ export default async function handler(req, res) {
             <strong>Checkout session:</strong> ${escapeHtml(sessionId)}<br/>
             <strong>Mode:</strong> ${escapeHtml(session.mode || "")}
           </p>
+
+          ${
+            trackingCode
+              ? `
+          <h3 style="margin:18px 0 8px;">Shipping Label</h3>
+          <div style="background:#f0f9ff;border:1px solid #0ea5e9;border-radius:12px;padding:12px;">
+            <p style="margin:0 0 6px;"><strong>Tracking:</strong> ${escapeHtml(trackingCode)}</p>
+            ${trackingUrl ? `<p style="margin:0 0 6px;"><a href="${escapeHtml(trackingUrl)}" style="color:#0ea5e9;">Track Package</a></p>` : ""}
+            ${labelUrl ? `<p style="margin:0;"><a href="${escapeHtml(labelUrl)}" style="color:#0ea5e9;">Download Label</a></p>` : ""}
+          </div>
+          `
+              : shippingError
+              ? `
+          <h3 style="margin:18px 0 8px;">Shipping Label</h3>
+          <div style="background:#fef2f2;border:1px solid #ef4444;border-radius:12px;padding:12px;">
+            <p style="margin:0;color:#991b1b;"><strong>Label creation failed:</strong> ${escapeHtml(shippingError)}</p>
+            <p style="margin:6px 0 0;font-size:12px;color:#7f1d1d;">Create label manually in EasyPost dashboard.</p>
+          </div>
+          `
+              : ""
+          }
         </div>
       `;
 
@@ -372,6 +462,18 @@ export default async function handler(req, res) {
             <li>When your order ships, you'll receive a shipping update (and tracking if available).</li>
             <li>If your shipping address needs a correction, reply to this email as soon as possible.</li>
           </ul>
+
+          ${
+            trackingCode
+              ? `
+          <div style="margin:18px 0;padding:14px;background:#f0f9ff;border:1px solid #0ea5e9;border-radius:12px;">
+            <p style="margin:0 0 8px;font-weight:bold;color:#0369a1;">Your order is ready to ship!</p>
+            <p style="margin:0 0 6px;"><strong>Tracking number:</strong> ${escapeHtml(trackingCode)}</p>
+            ${trackingUrl ? `<p style="margin:0;"><a href="${escapeHtml(trackingUrl)}" style="color:#0ea5e9;text-decoration:underline;">Track your package</a></p>` : ""}
+          </div>
+          `
+              : ""
+          }
 
           <p style="margin:16px 0 0; font-size:12px; color:#666;">
             Questions? Reply to this email and we'll help.
