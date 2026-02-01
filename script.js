@@ -68,7 +68,7 @@ async function runCheckoutOnce({ btn, statusEl, run }) {
   checkoutSubmitting = true;
   try { localStorage.setItem("checkoutInProgress", "1"); } catch (e) {}
 
-  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkout”¦");
+  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkout…");
 
   let redirected = false;
 
@@ -397,7 +397,7 @@ async function payWithCard() {
       if (!res.ok) throw new Error(data.error || "Checkout failed.");
 
       // Keep lock ON while we redirect (success.html clears it)
-      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping details”¦");
+      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping details…");
       window.location.href = data.url;
     }
   });
@@ -636,7 +636,7 @@ function initNewsletterUI(){
 		if (!validateEmail(email)){
 			msg.classList.remove('hidden'); msg.textContent = 'Please enter a valid email.'; return;
 		}
-		submitBtn.disabled = true; submitBtn.textContent = 'Signing”¦';
+		submitBtn.disabled = true; submitBtn.textContent = 'Signing…';
 		try{
 			if (NEWSLETTER_MODE === 'local'){
 				saveLocalSignup(email);
@@ -673,7 +673,7 @@ function buildOrderSummary(cart){
 		const lineTotal = priceNum * qty;
 		total += lineTotal;
 		const variantParts = [it.scent, it.size].filter(Boolean);
-		const variant = variantParts.length ? variantParts.join(' ”¢ ') : '—';
+		const variant = variantParts.length ? variantParts.join(' • ') : '—';
 		lines.push(`Item: ${itemName}`);
 		lines.push(`Variant/Size: ${variant}`);
 		lines.push(`Qty: ${qty}`);
