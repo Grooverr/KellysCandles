@@ -111,7 +111,7 @@ body.cart-open{ overflow:hidden; }
 .lead{ margin:6px 0 0 0; color:#555; }
 
 /* ===============================
-   FILTER BUTTONS – MODERN RUSTIC
+   FILTER BUTTONS â€“ MODERN RUSTIC
    =============================== */
 
 .filters {
@@ -500,7 +500,7 @@ body.cart-open{ overflow:hidden; }
 
 
 /* =========================================================
-   INFO PAGES – REALISTIC TORN PAPER (NOISE MASK)
+   INFO PAGES â€“ REALISTIC TORN PAPER (NOISE MASK)
    ========================================================= */
 
 .info-page {
@@ -528,7 +528,7 @@ body.cart-open{ overflow:hidden; }
   z-index: 2;
 }
 
-/* Use a “torn” mask made from SVG noise (embedded, no file needed) */
+/* Use a â€œtornâ€ mask made from SVG noise (embedded, no file needed) */
 .paper::before,
 .paper::after {
   content: "";
@@ -580,7 +580,7 @@ body.cart-open{ overflow:hidden; }
 }
 
 /* ===============================
-   PRODUCT CARDS – PREMIUM POLISH
+   PRODUCT CARDS â€“ PREMIUM POLISH
    =============================== */
 
 .card {
@@ -652,7 +652,7 @@ body.cart-open{ overflow:hidden; }
 
 
 /* ===============================
-   FOOTER – POLISH + FINISHED LOOK
+   FOOTER â€“ POLISH + FINISHED LOOK
    =============================== */
 
 .site-footer{
@@ -731,7 +731,7 @@ body.cart-open{ overflow:hidden; }
 
 
 /* ===============================
-   CART PANEL – POLISH + HIERARCHY
+   CART PANEL â€“ POLISH + HIERARCHY
    =============================== */
 
 /* Make the overlay feel softer */
@@ -756,7 +756,7 @@ body.cart-open{ overflow:hidden; }
   margin: 0;
 }
 
-/* Items: less “listy”, more “receipt” */
+/* Items: less â€œlistyâ€, more â€œreceiptâ€ */
 .cart-items {
   padding: 16px 18px;
 }
@@ -814,7 +814,7 @@ body.cart-open{ overflow:hidden; }
 }
 
 /* ===============================
-   CART TOTAL – TIGHTER ALIGNMENT
+   CART TOTAL â€“ TIGHTER ALIGNMENT
    =============================== */
 
 .cart-total {
@@ -888,7 +888,7 @@ body.cart-open{ overflow:hidden; }
 }
 
 .cart-total::after {
-  content: "Secure checkout • Encrypted payment";
+  content: "Secure checkout â€¢ Encrypted payment";
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -897,6 +897,3 @@ body.cart-open{ overflow:hidden; }
   color: rgba(59,47,47,0.65);
   letter-spacing: 0.2px;
 }
-
-
-
