@@ -14,7 +14,7 @@
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Kelley's Candles — Inventory</title>
+  <title>Kelley's Candles â€” Inventory</title>
 
   <!-- Favicons -->
   <link rel="icon" href="/favicon.ico" sizes="any">
@@ -31,7 +31,7 @@
     Kelley's Candles - Inventory Display
 
     How the Google Sheets connection works (brief):
-    - Publish your Google Sheet to the web (File → Publish to the web).
+    - Publish your Google Sheet to the web (File â†’ Publish to the web).
     - Use the published URL and convert it to the CSV endpoint by replacing
       "/pubhtml" with "/pub?output=csv" and keeping the same gid parameter.
     - This site fetches that CSV URL with `fetch()` and parses rows into objects.
@@ -39,7 +39,7 @@
     IMPORTANT: Do not publish sensitive data. The published sheet becomes public.
   -->
 
-  <div class="announcement">Hand‑poured on the farm — Free shipping on orders over $100</div>
+  <div class="announcement">Handâ€‘poured on the farm â€” Free shipping on orders over $100</div>
 
   <header class="site-header">
   <div class="container header-inner">
@@ -65,20 +65,20 @@
   <main class="container">
     <section id="about" class="about">
       <h2>About Us</h2>
-      <p class="lead">Kelley's Candles crafts small batch, hand‑poured farm candles using natural waxes and thoughtfully blended scents. Each batch is made by hand on the farm. Scent availability varies by season. Local pickup and nationwide shipping options are available; please choose your preference at checkout.</p>
+      <p class="lead">Kelley's Candles crafts small batch, handâ€‘poured farm candles using natural waxes and thoughtfully blended scents. Each batch is made by hand on the farm. Scent availability varies by season. Local pickup and nationwide shipping options are available; please choose your preference at checkout.</p>
     </section>
 <!-- Customer Reviews Section - currently commented out
 
     <section class="social-proof">
       <h3>Loved by Our Customers</h3>
-      <p class="social-text">“Hand-poured candles enjoyed by customers across our community.”</p>
+      <p class="social-text">â€œHand-poured candles enjoyed by customers across our community.â€</p>
     </section>
 
 -->
 
     <section class="inventory-intro">
       <h2>Current Inventory</h2>
-      <p class="lead">Below are candles we have available — quantities update automatically from the Google Sheet.</p>
+      <p class="lead">Below are candles we have available â€” quantities update automatically from the Google Sheet.</p>
       <div class="filters" aria-label="Inventory filters">
         <span>Filter by size:</span>
         <button class="btn small filter-btn active" data-size="">All</button>
@@ -90,10 +90,9 @@
 
     <section id="inventory-area">
       <!-- Loading / error / items will be inserted here by script.js -->
-      <div id="loading" class="status">Loading inventory…</div>
+      <div id="loading" class="status">Loading inventoryâ€¦</div>
       <div id="error" class="status hidden"></div>
       <div id="inventory" class="product-grid hidden" aria-live="polite"></div>
-      <div id="csv-debug" class="status hidden">CSV URL: <a id="csv-link" href="#" target="_blank" rel="noopener">Open CSV</a></div>
     </section>
   </main>
 
@@ -102,7 +101,7 @@
   <aside id="cart-panel" class="cart-panel hidden" role="dialog" aria-label="Shopping cart">
     <header class="cart-header">
       <h3>Your Cart</h3>
-      <button id="cart-close" class="cart-close" aria-label="Close cart">✕</button>
+      <button id="cart-close" class="cart-close" aria-label="Close cart">âœ•</button>
     </header>
     <div class="cart-content">
       <div id="cart-items" class="cart-items">
@@ -147,7 +146,7 @@
             <section id="what-to-expect" class="what-to-expect">
               <h3>What to Expect After Ordering</h3>
               <ul>
-                <li>Orders are handcrafted in small batches and typically processed within 3–5 business days.</li>
+                <li>Orders are handcrafted in small batches and typically processed within 3â€“5 business days.</li>
                 <li>You will receive a confirmation email after submitting your order.</li>
                 <li>Tracking information will be sent once your order ships.</li>
                 <li>If you have questions at any time, you can contact us by email.</li>
@@ -167,6 +166,9 @@
       <h3 id="newsletter-heading">Get Updates</h3>
       <p class="newsletter-lead">Join our little farm list for light updates about new scents, small-batch releases, and market days.</p>
       <form id="newsletter-form" class="newsletter-form" novalidate>
+        <!-- Honeypot: hidden from real users. Bots that fill every field will trigger this. -->
+        <input id="newsletter-hp" name="hp_check" type="text" autocomplete="off"
+               style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;" tabindex="-1" aria-hidden="true">
         <div class="input-row">
           <input id="newsletter-email" name="email" type="email" placeholder="Your email address" required />
           <button id="newsletter-submit" class="btn">Sign Up</button>
@@ -182,7 +184,7 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>&copy; <span id="year"></span> Kelley's Candles — Handmade on the farm</p>
+      <p>&copy; <span id="year"></span> Kelley's Candles â€” Handmade on the farm</p>
       <div class="footer-links">
         <a href="privacy.html" class="privacy-link">Privacy Policy</a>
         <a href="candle-care.html" class="care-link">Candle Care &amp; Safety</a>
