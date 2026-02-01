@@ -68,7 +68,7 @@ async function runCheckoutOnce({ btn, statusEl, run }) {
   checkoutSubmitting = true;
   try { localStorage.setItem("checkoutInProgress", "1"); } catch (e) {}
 
-  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkoutâ€¦");
+  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkout”¦");
 
   let redirected = false;
 
@@ -78,7 +78,7 @@ async function runCheckoutOnce({ btn, statusEl, run }) {
       console.warn("[checkout] failsafe unlock triggered (no redirect detected)");
       checkoutSubmitting = false;
       try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
-      lockCheckoutUI(false, btn, statusEl, "Checkout didnâ€™t start. Try again.");
+      lockCheckoutUI(false, btn, statusEl, "Checkout didn’t start. Try again.");
     }
   }, 8000);
 
@@ -397,7 +397,7 @@ async function payWithCard() {
       if (!res.ok) throw new Error(data.error || "Checkout failed.");
 
       // Keep lock ON while we redirect (success.html clears it)
-      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping detailsâ€¦");
+      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping details”¦");
       window.location.href = data.url;
     }
   });
@@ -636,7 +636,7 @@ function initNewsletterUI(){
 		if (!validateEmail(email)){
 			msg.classList.remove('hidden'); msg.textContent = 'Please enter a valid email.'; return;
 		}
-		submitBtn.disabled = true; submitBtn.textContent = 'Signingâ€¦';
+		submitBtn.disabled = true; submitBtn.textContent = 'Signing”¦';
 		try{
 			if (NEWSLETTER_MODE === 'local'){
 				saveLocalSignup(email);
@@ -673,7 +673,7 @@ function buildOrderSummary(cart){
 		const lineTotal = priceNum * qty;
 		total += lineTotal;
 		const variantParts = [it.scent, it.size].filter(Boolean);
-		const variant = variantParts.length ? variantParts.join(' â€¢ ') : 'â€”';
+		const variant = variantParts.length ? variantParts.join(' ”¢ ') : '—';
 		lines.push(`Item: ${itemName}`);
 		lines.push(`Variant/Size: ${variant}`);
 		lines.push(`Qty: ${qty}`);
@@ -757,7 +757,7 @@ function buildOrderText(formData){
 	lines.push(`Order from Kelley's Candles`);
 	lines.push('');
 	lines.push('Items:');
-	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.candleName || it.name} (${it.size}) â€” ${it.price}`); });
+	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.candleName || it.name} (${it.size}) — ${it.price}`); });
 	lines.push('');
 	lines.push('Customer:');
 	lines.push(`Name: ${formData.get('name') || ''}`);
@@ -778,7 +778,7 @@ function buildOrderText(formData){
  		https://docs.google.com/forms/d/e/FORM_ID/viewform)
  	- Fill `GOOGLE_FORM_FIELDS` mapping with your form's entry IDs, e.g.:
  		{ name: 'entry.123456', phone: 'entry.234567', fulfillment: 'entry.345678', payment: 'entry.456789', payment_user: 'entry.567890', comments: 'entry.678901' }
- 	- To get entry IDs: open your Google Form, click the three dots â†’ Get pre-filled link,
+ 	- To get entry IDs: open your Google Form, click the three dots → Get pre-filled link,
  		fill example values, then click Get link and inspect the URL's query params (entry.xxxxxx).
  	- The script uses `URL` and `URLSearchParams` to build a safe prefilled URL.
 */
@@ -824,7 +824,7 @@ function buildOrderHtml(formData){
  	</style>
  	</head><body>
  	<div class="header">
-	<div class="h1">Kelley's Candles â€” Order Summary</div>
+	<div class="h1">Kelley's Candles — Order Summary</div>
  	  <div class="meta">Generated: ${new Date().toLocaleString()}</div>
  	</div>
 
@@ -915,6 +915,6 @@ function copyOrderToClipboard(){
 	const fd = new FormData(form);
 	const orderText = buildOrderText(fd);
 	navigator.clipboard.writeText(orderText).then(()=>{
-		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard â€” paste into email or message.';
+		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard — paste into email or message.';
 	});
 }
