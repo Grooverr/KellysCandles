@@ -6,9 +6,6 @@ import { createShipment } from "./lib/easypost.js";
 
 // ─────────────────────────────────────────────────────────────
 // Stripe key — same resolution logic as the other two routes.
-// Previous code used: STRIPE_SECRET_KEY || STRIPE_LIVE_KEY
-//   • No NODE_ENV check → could silently use a test key in prod
-//   • Priority was reversed vs create-checkout → inconsistent
 // ─────────────────────────────────────────────────────────────
 const STRIPE_KEY =
   process.env.NODE_ENV === "production"
@@ -29,9 +26,6 @@ const stripe = new Stripe(STRIPE_KEY, {
 
 // ─────────────────────────────────────────────────────────────
 // Webhook signing secret — also environment-aware now.
-// Previously hardcoded to STRIPE_LIVE_WEBHOOK_SECRET only,
-// which meant local dev / test webhooks would always fail
-// signature verification.
 // ─────────────────────────────────────────────────────────────
 const WEBHOOK_SECRET =
   process.env.NODE_ENV === "production"
@@ -99,7 +93,28 @@ function formatAddress(addr) {
   return parts.join("\n");
 }
 
-async function sendEmail({ to, from, subject, html, replyTo }) {
+// ─────────────────────────────────────────────────────────────
+// UPDATED: Download label PDF as base64 for email attachment
+// ─────────────────────────────────────────────────────────────
+async function downloadLabelAsBase64(labelUrl) {
+  try {
+    const response = await fetch(labelUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download label: ${response.status}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return buffer.toString('base64');
+  } catch (err) {
+    console.error("[label-download] failed:", err.message);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// UPDATED: sendEmail now supports attachments array
+// ─────────────────────────────────────────────────────────────
+async function sendEmail({ to, from, subject, html, replyTo, attachments }) {
   if (!process.env.RESEND_API_KEY || !from || !to) {
     console.log("[email] missing env vars", {
       hasResendKey: !!process.env.RESEND_API_KEY,
@@ -110,14 +125,20 @@ async function sendEmail({ to, from, subject, html, replyTo }) {
   }
 
   try {
-    const result = await resend.emails.send({
+    const emailData = {
       from,
       to,
       subject,
       html,
       replyTo: replyTo || "kelleysfarmcandles@gmail.com",
+    };
 
-    });
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      emailData.attachments = attachments;
+    }
+
+    const result = await resend.emails.send(emailData);
     console.log("[email] sent", result);
     return result;
   } catch (err) {
@@ -186,7 +207,7 @@ export default async function handler(req, res) {
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
-      WEBHOOK_SECRET   // ← was hardcoded env var; now uses the resolved const
+      WEBHOOK_SECRET
     );
   } catch (err) {
     console.error("[webhook] signature verification failed:", err.message);
@@ -195,11 +216,10 @@ export default async function handler(req, res) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      // NOTE: event.data.object is "lite". Retrieve full session for shipping rate name & totals.
       const liteSession = event.data.object;
       const sessionId = liteSession.id;
 
-      // Retrieve expanded session so we can show shipping method name
+      // Retrieve expanded session
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
         expand: ["shipping_cost.shipping_rate"],
       });
@@ -222,7 +242,7 @@ export default async function handler(req, res) {
       const tax = session.total_details?.amount_tax ?? 0;
       const total = session.amount_total ?? 0;
 
-      // Fetch line items (more reliable than metadata)
+      // Fetch line items
       let itemsText = "";
       let itemsHtml = "";
       let lines = [];
@@ -235,12 +255,9 @@ export default async function handler(req, res) {
         lines = (lineItems.data || []).map((li) => {
           const qty = li.quantity ?? 1;
           const name = li.description || "Item";
-
-          // Prefer unit_amount when available; fall back safely
           const unit =
             li.price?.unit_amount ??
             Math.round((li.amount_subtotal ?? 0) / Math.max(1, qty));
-
           const line = li.amount_subtotal ?? unit * qty;
 
           return { qty, name, unit, line };
@@ -249,7 +266,6 @@ export default async function handler(req, res) {
         itemsText = lines.map((l) => `${l.qty}x ${l.name}`).join(", ");
         itemsHtml = buildItemsTable(lines, currency);
       } catch (e) {
-        // fallback to your metadata if present
         itemsText = session.metadata?.items || "(no line items)";
         itemsHtml = `
           <div style="padding:12px;border:1px solid #eee;border-radius:12px;">
@@ -275,12 +291,12 @@ export default async function handler(req, res) {
       let trackingCode = null;
       let trackingUrl = null;
       let labelUrl = null;
+      let labelBase64 = null; // ← NEW: for attachment
       let shippingError = null;
 
       try {
         // Parse items from line items for weight calculation
         const itemsForShipping = lines.map((l) => ({
-          // Extract size from item name (e.g., "Apple Pie • 12 oz" → "12 oz")
           size: l.name.match(/(\d+\s*oz)/i)?.[1] || "12 oz",
           qty: l.qty,
           scent: l.name.split("•")[0]?.trim() || l.name,
@@ -317,6 +333,19 @@ export default async function handler(req, res) {
             service: shipmentResult.service,
             cost: shipmentResult.cost,
           });
+
+          // ─────────────────────────────────────────────────────────
+          // NEW: Download the label PDF for email attachment
+          // ─────────────────────────────────────────────────────────
+          if (labelUrl) {
+            console.log("[webhook] Downloading label PDF for attachment...");
+            labelBase64 = await downloadLabelAsBase64(labelUrl);
+            if (labelBase64) {
+              console.log("[webhook] Label PDF downloaded successfully");
+            } else {
+              console.warn("[webhook] Failed to download label PDF");
+            }
+          }
         } else {
           shippingError = shipmentResult.error;
           console.error("[webhook] Shipping label creation failed:", shippingError);
@@ -339,7 +368,7 @@ export default async function handler(req, res) {
         </div>
       `;
 
-      // ----- STORE EMAIL (keep your env var names) -----
+      // ----- STORE EMAIL (with label attachment) -----
       const storeTo = process.env.ORDER_NOTIFY_TO_EMAIL;
       const storeFromEmail = process.env.ORDER_NOTIFY_FROM_EMAIL;
       const storeFrom = storeFromEmail ? `Kelley's Candles <${storeFromEmail}>` : "";
@@ -398,7 +427,8 @@ export default async function handler(req, res) {
           <div style="background:#f0f9ff;border:1px solid #0ea5e9;border-radius:12px;padding:12px;">
             <p style="margin:0 0 6px;"><strong>Tracking:</strong> ${escapeHtml(trackingCode)}</p>
             ${trackingUrl ? `<p style="margin:0 0 6px;"><a href="${escapeHtml(trackingUrl)}" style="color:#0ea5e9;">Track Package</a></p>` : ""}
-            ${labelUrl ? `<p style="margin:0;"><a href="${escapeHtml(labelUrl)}" style="color:#0ea5e9;">Download Label</a></p>` : ""}
+            ${labelUrl ? `<p style="margin:0 0 6px;"><a href="${escapeHtml(labelUrl)}" style="color:#0ea5e9;">View Label Online</a></p>` : ""}
+            ${labelBase64 ? `<p style="margin:0;color:#059669;font-weight:bold;">📎 Shipping label attached to this email</p>` : ""}
           </div>
           `
               : shippingError
@@ -413,6 +443,18 @@ export default async function handler(req, res) {
           }
         </div>
       `;
+
+      // ─────────────────────────────────────────────────────────────
+      // NEW: Build attachments array with label PDF
+      // ─────────────────────────────────────────────────────────────
+      const storeAttachments = [];
+      if (labelBase64) {
+        const orderShort = sessionId ? sessionId.slice(-8) : "order";
+        storeAttachments.push({
+          filename: `shipping-label-${orderShort}.pdf`,
+          content: labelBase64,
+        });
+      }
 
       // ----- CUSTOMER EMAIL (POLISHED) -----
       const customerTo = customerEmail;
@@ -481,21 +523,21 @@ export default async function handler(req, res) {
         </div>
       `;
 
-      // Send store notification (non-fatal)
+      // Send store notification with label attachment
       try {
         await sendEmail({
-  to: storeTo,
-  from: storeFrom,
-  subject: storeSubject,
-  html: storeHtml,
-  replyTo: customerEmail || "kelleysfarmcandles@gmail.com",
-});
-
+          to: storeTo,
+          from: storeFrom,
+          subject: storeSubject,
+          html: storeHtml,
+          replyTo: customerEmail || "kelleysfarmcandles@gmail.com",
+          attachments: storeAttachments, // ← NEW: include label PDF
+        });
       } catch (err) {
         console.error("[email] store notification failed:", err?.message || err);
       }
 
-      // Send customer confirmation (non-fatal)
+      // Send customer confirmation (no attachment)
       try {
         if (customerTo) {
           await sendEmail({
@@ -512,7 +554,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // ✅ Always return 200 even if email fails
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("[webhook] handler error:", err);
