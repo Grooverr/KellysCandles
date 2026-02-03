@@ -297,6 +297,9 @@ export default async function handler(req, res) {
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ["US"] },
 
+      // ✅ Automatic tax calculation (enable Stripe Tax in Dashboard first)
+      automatic_tax: { enabled: true },
+
       // ✅ Shipping option (tiered under $100; free at $100+)
       shipping_options: [
         {
