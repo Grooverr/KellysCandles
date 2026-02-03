@@ -29,7 +29,7 @@ const stripe = new Stripe(STRIPE_KEY, {
 
 
 const PRICE_MAP = {
-  "Apple Pie|17 oz": 2200,   // ← smoke-test $1 removed; restore real price
+  "Apple Pie|17 oz": 2200,
   "Love Spelling|17 oz": 2200,
   "Black Raspberry|17 oz": 2200,
   "Monkey Farts|17 oz": 2200,
@@ -49,6 +49,13 @@ const PRICE_MAP = {
   "Lilac Bush|6 oz": 700,
   "Love Spelling|6 oz": 700,
   "Lavander|6 oz": 700,
+
+  "Apple Pie|wax melt": 500,
+  "Black Raspberry|wax melt": 500,
+  "Monkey Farts|wax melt": 500,
+  "Lilac Bush|wax melt": 500,
+  "Love Spelling|wax melt": 500,
+  "Lavander|wax melt": 500,
 };
 
 
@@ -72,7 +79,6 @@ const ENFORCE_SCENT_ALLOWLIST = false;
 
 // ✅ Allow list origins
 const ALLOWED_ORIGINS = new Set([
-  "https://grooverr.github.io",
   "https://kelleyscandles.com",
   "https://www.kelleyscandles.com",
   // optional local dev:
@@ -122,6 +128,12 @@ function normalizeScent(raw, index) {
 
 function normalizeSize(raw, index) {
   const cleaned = String(raw || "").trim().toLowerCase();
+  
+  // Handle wax melts (non-numeric size)
+  if (cleaned.includes("wax") || cleaned.includes("melt")) {
+    return "wax melt";
+  }
+  
   const match = cleaned.match(/(\d+(\.\d+)?)/);
   if (!match) {
     const err = new Error(`Invalid size "${raw}" for cart item at index ${index}`);
@@ -138,15 +150,45 @@ function normalizeSize(raw, index) {
   return `${sizeNum} oz`;
 }
 
-function getTotalQty(normalizedItems) {
-  return normalizedItems.reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
+function getCandleQty(normalizedItems) {
+  return normalizedItems
+    .filter(i => i.size !== "wax melt")
+    .reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
 }
 
-function getTieredShipping(totalQty) {
-  // Adjust these tiers anytime
-  if (totalQty <= 1) return { amount: 600, label: "Standard Shipping (1 candle)" };     // $6.00
-  if (totalQty <= 3) return { amount: 900, label: "Standard Shipping (2–3 candles)" }; // $9.00
-  return { amount: 1200, label: "Standard Shipping (4+ candles)" };                    // $12.00
+function getMeltQty(normalizedItems) {
+  return normalizedItems
+    .filter(i => i.size === "wax melt")
+    .reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
+}
+
+function getShippingForCart(normalizedItems) {
+  const candleQty = getCandleQty(normalizedItems);
+  const meltQty = getMeltQty(normalizedItems);
+  
+  // Mixed cart: use candle-based tiered shipping (melts ignored)
+  if (candleQty > 0 && meltQty > 0) {
+    if (candleQty <= 1) return { amount: 600, label: "Standard Shipping (1 candle)" };
+    if (candleQty <= 3) return { amount: 900, label: "Standard Shipping (2–3 candles)" };
+    return { amount: 1200, label: "Standard Shipping (4+ candles)" };
+  }
+  
+  // Candles only: existing tiered shipping
+  if (candleQty > 0) {
+    if (candleQty <= 1) return { amount: 600, label: "Standard Shipping (1 candle)" };
+    if (candleQty <= 3) return { amount: 900, label: "Standard Shipping (2–3 candles)" };
+    return { amount: 1200, label: "Standard Shipping (4+ candles)" };
+  }
+  
+  // Wax melts only: tiered by melt count
+  if (meltQty > 0) {
+    if (meltQty <= 5) return { amount: 600, label: "Standard Shipping (1–5 wax melts)" };
+    if (meltQty <= 10) return { amount: 900, label: "Standard Shipping (6–10 wax melts)" };
+    return { amount: 1200, label: "Standard Shipping (11+ wax melts)" };
+  }
+  
+  // Fallback (empty cart shouldn't reach here)
+  return { amount: 600, label: "Standard Shipping" };
 }
 
 export default async function handler(req, res) {
@@ -216,8 +258,7 @@ export default async function handler(req, res) {
 
     const FREE_SHIPPING_THRESHOLD_CENTS = 10000; // $100.00
 
-    const totalQty = getTotalQty(normalizedItems);
-    const tieredShipping = getTieredShipping(totalQty);
+    const shipping = getShippingForCart(normalizedItems);
 
     // ✅ Compute subtotal server-side (tamper-proof)
     const subtotalCents = normalizedItems.reduce(
@@ -230,7 +271,7 @@ export default async function handler(req, res) {
 
     const finalShipping = freeShippingApplied
       ? { amount: 0, label: "Free Shipping (Orders $100+)" }
-      : tieredShipping;
+      : shipping;
 
     // Optional: simple cart summary for metadata
     const itemsSummary = normalizedItems
@@ -283,7 +324,8 @@ export default async function handler(req, res) {
 
         shipping_tier: finalShipping.label,
         shipping_amount: String(finalShipping.amount),
-        total_qty: String(totalQty),
+        candle_qty: String(getCandleQty(normalizedItems)),
+        melt_qty: String(getMeltQty(normalizedItems)),
       },
     });
 
