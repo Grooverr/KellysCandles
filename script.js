@@ -267,8 +267,10 @@ function createCard(item) {
 			imgUrl = '';
 		}
 
+		// Detect wax melt products to apply correct image styling (no zoom, contain)
+		const isMelt = /melt/i.test(size) || /melt/i.test(imgUrl) || /wax\s*[-_]?\s*melt/i.test(candleName);
 		const imgHtml = imgUrl
-			? `<div class="card-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>`
+			? `<div class="card-image${isMelt ? ' wax-melt' : ''}"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>`
 			: '';
 
 	// Add has-image class if image is present
