@@ -11,18 +11,23 @@
   try { localStorage.removeItem('checkoutInProgress'); } catch(e) {}
 </script>
 <body>
+  <div class="announcement">No worries — you weren't charged</div>
+
   <header class="site-header">
     <div class="container header-inner">
       <div class="brand">
         <h1 class="site-title">Kelley's Candles</h1>
+        <p class="tagline">Hand-Poured Farm Candles</p>
       </div>
       <nav class="nav">
-        <a href="/" class="logo-link nav-logo">
-          <img src="/images/logo.png" alt="Kelley's Candles logo" class="site-logo">
-        </a>
-        <a href="index.html">Home</a>
-        <a href="index.html#inventory-area">Products</a>
-        <a href="candle-care.html">Candle Care &amp; Safety</a>
+        <div class="nav-logo">
+          <img src="Images/Logo.png" alt="Kelley's Candles logo" class="site-logo">
+        </div>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="index.html#inventory-area">Products</a>
+          <a href="candle-care.html">Candle Care &amp; Safety</a>
+        </div>
       </nav>
     </div>
   </header>
