@@ -56,6 +56,9 @@ const PRICE_MAP = {
   "Lilac Bush|wax melt": 500,
   "Love Spelling|wax melt": 500,
   "Lavander|wax melt": 500,
+
+  // Test item for live environment testing (1 cent)
+  "Test Item|test": 1,
 };
 
 
