@@ -57,8 +57,6 @@ const PRICE_MAP = {
   "Love Spelling|wax melt": 500,
   "Lavander|wax melt": 500,
 
-  // Test item for live environment testing (1 cent)
-  "Test Item|test": 1,
 };
 
 
