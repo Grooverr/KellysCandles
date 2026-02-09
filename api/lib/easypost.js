@@ -45,6 +45,7 @@ const CANDLE_WEIGHTS = {
   "17 oz": 24,  // 17 oz wax + ~7 oz jar
 };
 
+const WAX_MELT_WEIGHT = 6; // wax melts + packaging (oz)
 const BOX_WEIGHT = 4; // Empty box + packing material (oz)
 
 // Standard box dimensions for candle shipments (inches)
@@ -60,16 +61,21 @@ const BOX_DIMENSIONS = {
  * @returns {number} Total weight in ounces
  */
 function calculatePackageWeight(items) {
-  const candleWeight = items.reduce((total, item) => {
+  const itemWeight = items.reduce((total, item) => {
+    // Handle wax melts
+    if (item.size === "wax melt") {
+      return total + WAX_MELT_WEIGHT * item.qty;
+    }
+    // Handle candles
     const unitWeight = CANDLE_WEIGHTS[item.size] || 15; // fallback to avg
     return total + unitWeight * item.qty;
   }, 0);
 
-  return candleWeight + BOX_WEIGHT;
+  return itemWeight + BOX_WEIGHT;
 }
 
 /**
- * Create a shipment and purchase the cheapest label
+ * Create a shipment and purchase the cheapest suitable label
  * @param {Object} params
  * @param {Object} params.toAddress - Customer shipping address from Stripe
  * @param {Array} params.items - Cart items for weight calculation
@@ -106,6 +112,10 @@ export async function createShipment({ toAddress, items, orderId }) {
         weight: weightOz,
       },
       reference: orderId, // Links back to Stripe session
+      options: {
+        // Add $100 insurance to all shipments
+        insurance: 100.00,
+      },
     });
 
     console.log("[easypost] Shipment created", {
@@ -113,20 +123,51 @@ export async function createShipment({ toAddress, items, orderId }) {
       ratesCount: shipment.rates?.length || 0,
     });
 
-    // Buy the cheapest rate
-    // EasyPost automatically sorts rates by price (lowest first)
+    // ─────────────────────────────────────────────────────────────
+    // FIXED: Select cheapest USPS Ground/Priority rate (not Express!)
+    // ─────────────────────────────────────────────────────────────
     if (!shipment.rates || shipment.rates.length === 0) {
       throw new Error("No shipping rates available for this shipment");
     }
 
-    const lowestRate = shipment.rates[0];
+    // Filter for USPS economical services and sort by price
+    const suitableRates = shipment.rates
+      .filter(r => 
+        r.carrier === 'USPS' && 
+        (r.service === 'GroundAdvantage' || r.service === 'Priority')
+      )
+      .sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
+
+    let lowestRate;
+
+    if (suitableRates.length === 0) {
+      // Fallback: use absolute cheapest rate if no USPS Ground/Priority available
+      console.warn('[easypost] No USPS Ground/Priority rates found, using cheapest available');
+      const allRatesSorted = shipment.rates
+        .sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate));
+      lowestRate = allRatesSorted[0];
+    } else {
+      lowestRate = suitableRates[0];
+    }
 
     console.log("[easypost] Buying label", {
       carrier: lowestRate.carrier,
       service: lowestRate.service,
       rate: lowestRate.rate,
       currency: lowestRate.currency,
+      totalRatesAvailable: shipment.rates.length,
+      suitableRatesFound: suitableRates.length,
     });
+
+    // Log all available rates for debugging
+    console.log("[easypost] All available rates:", 
+      shipment.rates.map(r => ({
+        carrier: r.carrier,
+        service: r.service,
+        rate: r.rate,
+        days: r.delivery_days,
+      }))
+    );
 
     await easypost.Shipment.buy(shipment.id, lowestRate);
 
