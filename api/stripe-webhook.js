@@ -1,4 +1,5 @@
 // api/stripe-webhook.js
+// UPDATED: Embeds shipping label as image in email for easy printing
 export const config = { runtime: "nodejs" };
 import Stripe from "stripe";
 import { Resend } from "resend";
@@ -94,7 +95,7 @@ function formatAddress(addr) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// UPDATED: Download label PDF as base64 for email attachment
+// UPDATED: Download label PNG as base64 for embedding in email
 // ─────────────────────────────────────────────────────────────
 async function downloadLabelAsBase64(labelUrl) {
   try {
@@ -112,9 +113,9 @@ async function downloadLabelAsBase64(labelUrl) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// UPDATED: sendEmail now supports attachments array
+// Email sending function
 // ─────────────────────────────────────────────────────────────
-async function sendEmail({ to, from, subject, html, replyTo, attachments }) {
+async function sendEmail({ to, from, subject, html, replyTo }) {
   if (!process.env.RESEND_API_KEY || !from || !to) {
     console.log("[email] missing env vars", {
       hasResendKey: !!process.env.RESEND_API_KEY,
@@ -132,11 +133,6 @@ async function sendEmail({ to, from, subject, html, replyTo, attachments }) {
       html,
       replyTo: replyTo || "kelleysfarmcandles@gmail.com",
     };
-
-    // Add attachments if provided
-    if (attachments && attachments.length > 0) {
-      emailData.attachments = attachments;
-    }
 
     const result = await resend.emails.send(emailData);
     console.log("[email] sent", result);
@@ -291,7 +287,7 @@ export default async function handler(req, res) {
       let trackingCode = null;
       let trackingUrl = null;
       let labelUrl = null;
-      let labelBase64 = null; // ← NEW: for attachment
+      let labelBase64 = null; // ← PNG label image for embedding
       let shippingError = null;
 
       try {
@@ -325,7 +321,7 @@ export default async function handler(req, res) {
         if (shipmentResult.success) {
           trackingCode = shipmentResult.trackingCode;
           trackingUrl = shipmentResult.trackingUrl;
-          labelUrl = shipmentResult.labelUrl;
+          labelUrl = shipmentResult.labelUrl; // This is the PNG version
 
           console.log("[webhook] Shipping label created", {
             trackingCode,
@@ -335,15 +331,15 @@ export default async function handler(req, res) {
           });
 
           // ─────────────────────────────────────────────────────────
-          // NEW: Download the label PDF for email attachment
+          // NEW: Download the PNG label for embedding in email
           // ─────────────────────────────────────────────────────────
           if (labelUrl) {
-            console.log("[webhook] Downloading label PDF for attachment...");
+            console.log("[webhook] Downloading label PNG for embedding...");
             labelBase64 = await downloadLabelAsBase64(labelUrl);
             if (labelBase64) {
-              console.log("[webhook] Label PDF downloaded successfully");
+              console.log("[webhook] Label PNG downloaded successfully");
             } else {
-              console.warn("[webhook] Failed to download label PDF");
+              console.warn("[webhook] Failed to download label PNG");
             }
           }
         } else {
@@ -368,7 +364,7 @@ export default async function handler(req, res) {
         </div>
       `;
 
-      // ----- STORE EMAIL (with label attachment) -----
+      // ----- STORE EMAIL (with embedded label image) -----
       const storeTo = process.env.ORDER_NOTIFY_TO_EMAIL;
       const storeFromEmail = process.env.ORDER_NOTIFY_FROM_EMAIL;
       const storeFrom = storeFromEmail ? `Kelley's Candles <${storeFromEmail}>` : "";
@@ -421,14 +417,46 @@ export default async function handler(req, res) {
           </p>
 
           ${
-            trackingCode
+            trackingCode && labelBase64
+              ? `
+          <h3 style="margin:24px 0 8px;">📦 Shipping Label - Print This!</h3>
+          <div style="background:#f0f9ff;border:2px solid #0ea5e9;border-radius:12px;padding:16px;">
+            <p style="margin:0 0 12px;font-weight:bold;color:#0369a1;font-size:16px;">
+              ✅ Ready to ship! Print the label below.
+            </p>
+            
+            <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin:12px 0;">
+              <p style="margin:0 0 8px;font-weight:bold;color:#78350f;">📋 How to Print:</p>
+              <ol style="margin:0;padding-left:20px;font-size:13px;color:#1e293b;line-height:1.6;">
+                <li>Open this email</li>
+                <li>Click <strong>Print</strong> (or File → Print)</li>
+                <li>Print on regular 8.5" x 11" paper</li>
+                <li>Cut out the label below along the border</li>
+                <li>Tape it securely to your package</li>
+              </ol>
+            </div>
+            
+            <p style="margin:12px 0 8px;"><strong>Tracking:</strong> ${escapeHtml(trackingCode)}</p>
+            ${trackingUrl ? `<p style="margin:0 0 12px;"><a href="${escapeHtml(trackingUrl)}" style="color:#0ea5e9;">Track Package Online</a></p>` : ""}
+            
+            <div style="margin:16px 0;padding:16px;background:#fff;border:2px dashed #0ea5e9;border-radius:8px;text-align:center;">
+              <p style="margin:0 0 8px;font-weight:bold;color:#0369a1;">⬇️ SHIPPING LABEL - CUT OUT AND TAPE TO PACKAGE ⬇️</p>
+              <img src="data:image/png;base64,${labelBase64}" 
+                   alt="Shipping Label" 
+                   style="max-width:100%;height:auto;display:block;margin:0 auto;border:1px solid #ccc;" />
+            </div>
+            
+            ${labelUrl ? `<p style="margin:12px 0 0;font-size:12px;color:#64748b;">Backup: <a href="${escapeHtml(labelUrl)}" style="color:#0ea5e9;">View label online</a></p>` : ""}
+          </div>
+          `
+              : trackingCode
               ? `
           <h3 style="margin:18px 0 8px;">Shipping Label</h3>
           <div style="background:#f0f9ff;border:1px solid #0ea5e9;border-radius:12px;padding:12px;">
             <p style="margin:0 0 6px;"><strong>Tracking:</strong> ${escapeHtml(trackingCode)}</p>
             ${trackingUrl ? `<p style="margin:0 0 6px;"><a href="${escapeHtml(trackingUrl)}" style="color:#0ea5e9;">Track Package</a></p>` : ""}
-            ${labelUrl ? `<p style="margin:0 0 6px;"><a href="${escapeHtml(labelUrl)}" style="color:#0ea5e9;">View Label Online</a></p>` : ""}
-            ${labelBase64 ? `<p style="margin:0;color:#059669;font-weight:bold;">📎 Shipping label attached to this email</p>` : ""}
+            ${labelUrl ? `<p style="margin:0 0 6px;"><a href="${escapeHtml(labelUrl)}" style="color:#0ea5e9;">Download Label</a></p>` : ""}
+            <p style="margin:6px 0 0;font-size:12px;color:#7f1d1d;">Label image failed to embed - please click link above to download.</p>
           </div>
           `
               : shippingError
@@ -443,18 +471,6 @@ export default async function handler(req, res) {
           }
         </div>
       `;
-
-      // ─────────────────────────────────────────────────────────────
-      // NEW: Build attachments array with label PDF
-      // ─────────────────────────────────────────────────────────────
-      const storeAttachments = [];
-      if (labelBase64) {
-        const orderShort = sessionId ? sessionId.slice(-8) : "order";
-        storeAttachments.push({
-          filename: `shipping-label-${orderShort}.pdf`,
-          content: labelBase64,
-        });
-      }
 
       // ----- CUSTOMER EMAIL (POLISHED) -----
       const customerTo = customerEmail;
@@ -523,7 +539,7 @@ export default async function handler(req, res) {
         </div>
       `;
 
-      // Send store notification with label attachment
+      // Send store notification with embedded label
       try {
         await sendEmail({
           to: storeTo,
@@ -531,13 +547,12 @@ export default async function handler(req, res) {
           subject: storeSubject,
           html: storeHtml,
           replyTo: customerEmail || "kelleysfarmcandles@gmail.com",
-          attachments: storeAttachments, // ← NEW: include label PDF
         });
       } catch (err) {
         console.error("[email] store notification failed:", err?.message || err);
       }
 
-      // Send customer confirmation (no attachment)
+      // Send customer confirmation
       try {
         if (customerTo) {
           await sendEmail({
