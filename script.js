@@ -68,7 +68,7 @@ async function runCheckoutOnce({ btn, statusEl, run }) {
   checkoutSubmitting = true;
   try { localStorage.setItem("checkoutInProgress", "1"); } catch (e) {}
 
-  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkout…");
+  lockCheckoutUI(true, btn, statusEl, "Redirecting to secure checkoutâ€¦");
 
   let redirected = false;
 
@@ -78,7 +78,7 @@ async function runCheckoutOnce({ btn, statusEl, run }) {
       console.warn("[checkout] failsafe unlock triggered (no redirect detected)");
       checkoutSubmitting = false;
       try { localStorage.removeItem("checkoutInProgress"); } catch (e) {}
-      lockCheckoutUI(false, btn, statusEl, "Checkout didn’t start. Try again.");
+      lockCheckoutUI(false, btn, statusEl, "Checkout didnâ€™t start. Try again.");
     }
   }, 8000);
 
@@ -267,10 +267,9 @@ function createCard(item) {
 			imgUrl = '';
 		}
 
-		// Detect wax melt products to apply correct image styling (no zoom, contain)
-		const isMelt = /melt/i.test(size) || /melt/i.test(imgUrl) || /wax\s*[-_]?\s*melt/i.test(candleName);
+		const isWaxMelt = (size || '').trim().toLowerCase() === 'wax melt';
 		const imgHtml = imgUrl
-			? `<div class="card-image${isMelt ? ' wax-melt' : ''}"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>`
+			? `<div class="card-image${isWaxMelt ? ' wax-melt' : ''}"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(candleName)}" loading="lazy"></div>`
 			: '';
 
 	// Add has-image class if image is present
@@ -332,16 +331,28 @@ async function loadInventory() {
 		loading.classList.add('hidden');
 		inventory.classList.remove('hidden');
 		renderAvailable();
+		// hide debug link on success
+		const csvDebug = document.getElementById('csv-debug');
+		if (csvDebug) csvDebug.classList.add('hidden');
 	} catch (err) {
 		loading.classList.add('hidden');
 		error.classList.remove('hidden');
 		error.textContent = 'Error loading inventory: ' + err.message;
+		// show CSV link for debugging CORS/network issues
+		const csvLink = document.getElementById('csv-link');
+		const csvDebug = document.getElementById('csv-debug');
+		if (csvLink) {
+			csvLink.href = SHEET_CSV_URL || '#';
+			csvLink.textContent = SHEET_CSV_URL || 'No CSV URL configured';
+		}
+		if (csvDebug) csvDebug.classList.remove('hidden');
 	}
 }
 
 const VERCEL_API_BASE = "https://kellyscandles-vercel.vercel.app";
 
 async function payWithCard() {
+  console.log("[checkout] Pay with Card clicked");
   const msg = document.getElementById("pay-msg");
   const payBtn = document.getElementById("pay-with-card");
   let overrideMessage = "";
@@ -366,40 +377,20 @@ async function payWithCard() {
         throw new Error("Missing email");
       }
 
-      // Basic email format check before hitting the API
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        overrideMessage = "Please enter a valid email address.";
-        if (msg) { msg.classList.remove("hidden"); msg.textContent = overrideMessage; }
-        throw new Error("Invalid email");
-      }
-
-      // Only send identifiers to the server — never trust client prices.
-      // The API must look up the real price for each item by name + size.
-      const sanitizedCart = cart.map(item => ({
-        name: (item.candleName || item.name || "").trim(),
-        size: (item.size || "").trim(),
-        qty: Math.max(1, Math.floor(Number(item.qty) || 1))
-      })).filter(item => item.name); // drop anything without a name
-
-      if (!sanitizedCart.length) {
-        overrideMessage = "Your cart is empty.";
-        if (msg) { msg.classList.remove("hidden"); msg.textContent = overrideMessage; }
-        throw new Error("Cart is empty after sanitization");
-      }
-
       const url = `${VERCEL_API_BASE}/api/create-checkout-session`;
+      console.log("[stripe] create-checkout-session", url);
 
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart: sanitizedCart, customerEmail: email })
+        body: JSON.stringify({ cart, customerEmail: email || undefined })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Checkout failed.");
 
       // Keep lock ON while we redirect (success.html clears it)
-      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping details…");
+      lockCheckoutUI(true, payBtn, msg, "Redirecting to secure checkout to enter shipping detailsâ€¦");
       window.location.href = data.url;
     }
   });
@@ -594,10 +585,6 @@ async function submitToGoogleForm(email){
 	}
 }
 
-// Tracks the timestamp of the last newsletter submission to enforce a cooldown
-let lastNewsletterSubmitTime = 0;
-const NEWSLETTER_COOLDOWN_MS = 30000; // 30 seconds between submissions
-
 function initNewsletterUI(){
 	const form = document.getElementById('newsletter-form');
 	if (!form) return;
@@ -619,36 +606,19 @@ function initNewsletterUI(){
 	form.addEventListener('submit', async (e)=>{
 		e.preventDefault();
 		msg.classList.add('hidden'); msg.textContent='';
-
-		// Honeypot: if the hidden field has a value, a bot filled it in — silently reject.
-		const honeypot = form.querySelector('#newsletter-hp');
-		if (honeypot && honeypot.value.trim() !== '') {
-			msg.classList.remove('hidden'); msg.textContent = "Thanks! You're signed up."; // fake success so bots don't retry
-			return;
-		}
-
-		// Cooldown: prevent rapid repeated submissions
-		const now = Date.now();
-		if (now - lastNewsletterSubmitTime < NEWSLETTER_COOLDOWN_MS) {
-			msg.classList.remove('hidden'); msg.textContent = 'Please wait a moment before signing up again.';
-			return;
-		}
-
 		const email = (emailInput.value || '').trim();
 		if (!validateEmail(email)){
 			msg.classList.remove('hidden'); msg.textContent = 'Please enter a valid email.'; return;
 		}
-		submitBtn.disabled = true; submitBtn.textContent = 'Signing…';
+		submitBtn.disabled = true; submitBtn.textContent = 'Signingâ€¦';
 		try{
 			if (NEWSLETTER_MODE === 'local'){
 				saveLocalSignup(email);
-				lastNewsletterSubmitTime = Date.now();
 				msg.classList.remove('hidden'); msg.textContent = "Thanks! You're signed up.";
 			} else {
 				// google mode
 				try{
 					await submitToGoogleForm(email);
-					lastNewsletterSubmitTime = Date.now();
 					msg.classList.remove('hidden'); msg.textContent = "Thanks! You're signed up.";
 				}catch(err){
 					msg.classList.remove('hidden'); msg.textContent = 'Could not submit. Please try again.';
@@ -675,7 +645,7 @@ function buildOrderSummary(cart){
 		const lineTotal = priceNum * qty;
 		total += lineTotal;
 		const variantParts = [it.scent, it.size].filter(Boolean);
-		const variant = variantParts.length ? variantParts.join(' • ') : '—';
+		const variant = variantParts.length ? variantParts.join(' â€¢ ') : 'â€”';
 		lines.push(`Item: ${itemName}`);
 		lines.push(`Variant/Size: ${variant}`);
 		lines.push(`Qty: ${qty}`);
@@ -759,7 +729,7 @@ function buildOrderText(formData){
 	lines.push(`Order from Kelley's Candles`);
 	lines.push('');
 	lines.push('Items:');
-	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.candleName || it.name} (${it.size}) — ${it.price}`); });
+	cart.forEach(it=>{ lines.push(`${it.qty} x ${it.candleName || it.name} (${it.size}) â€” ${it.price}`); });
 	lines.push('');
 	lines.push('Customer:');
 	lines.push(`Name: ${formData.get('name') || ''}`);
@@ -780,7 +750,7 @@ function buildOrderText(formData){
  		https://docs.google.com/forms/d/e/FORM_ID/viewform)
  	- Fill `GOOGLE_FORM_FIELDS` mapping with your form's entry IDs, e.g.:
  		{ name: 'entry.123456', phone: 'entry.234567', fulfillment: 'entry.345678', payment: 'entry.456789', payment_user: 'entry.567890', comments: 'entry.678901' }
- 	- To get entry IDs: open your Google Form, click the three dots → Get pre-filled link,
+ 	- To get entry IDs: open your Google Form, click the three dots â†’ Get pre-filled link,
  		fill example values, then click Get link and inspect the URL's query params (entry.xxxxxx).
  	- The script uses `URL` and `URLSearchParams` to build a safe prefilled URL.
 */
@@ -826,7 +796,7 @@ function buildOrderHtml(formData){
  	</style>
  	</head><body>
  	<div class="header">
-	<div class="h1">Kelley's Candles — Order Summary</div>
+	<div class="h1">Kelley's Candles â€” Order Summary</div>
  	  <div class="meta">Generated: ${new Date().toLocaleString()}</div>
  	</div>
 
@@ -917,6 +887,6 @@ function copyOrderToClipboard(){
 	const fd = new FormData(form);
 	const orderText = buildOrderText(fd);
 	navigator.clipboard.writeText(orderText).then(()=>{
-		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard — paste into email or message.';
+		const msg = document.getElementById('checkout-msg'); msg.classList.remove('hidden'); msg.textContent = 'Order copied to clipboard â€” paste into email or message.';
 	});
 }

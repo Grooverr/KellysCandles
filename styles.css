@@ -111,7 +111,7 @@ body.cart-open{ overflow:hidden; }
 .lead{ margin:6px 0 0 0; color:#555; }
 
 /* ===============================
-   FILTER BUTTONS — MODERN RUSTIC
+   FILTER BUTTONS â€“ MODERN RUSTIC
    =============================== */
 
 .filters {
@@ -264,23 +264,26 @@ body.cart-open{ overflow:hidden; }
 .card-image {
   grid-column: 2;
   grid-row: 1 / -1;
-  width: 180px;
-  height: 180px;
+  width: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
   align-self: center;
   overflow: hidden;
-  border-radius: 8px;
 }
 
 .card-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
   display: block;
-  transition: transform 200ms ease;
+  transform: scale(1.35);
   transform-origin: center center;
+}
+
+/* Wax melts: no zoom, just fit naturally */
+.card-image.wax-melt img {
+  transform: none;
 }
 
 /* Price styling */
@@ -321,28 +324,20 @@ body.cart-open{ overflow:hidden; }
     grid-column: 1;
     grid-row: auto;
     width: 100%;
-    height: 180px;
+    height: 220px;
     margin-top: 8px;
-    border-radius: 6px;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 200ms ease;
-    transform-origin: center center;
+    width: auto;
+    height: 220px;
+    max-width: 100%;
+    object-fit: contain;
+    transform: none;
   }
-}
-
-/* Temporary preview zoom for images to compensate for canvas padding */
-.card-image img { transform: scale(1.45); object-fit: cover; }
-
-/* Wax melt images: no zoom, preserve aspect ratio */
-.card-image.wax-melt img {
-  transform: scale(1.0) !important;
-  object-fit: contain !important;
 }
 
 /* Cart panel styles */
@@ -447,41 +442,6 @@ body.cart-open{ overflow:hidden; }
 }
 
 
-/* --- Product card image layout (GRID - prevents text overlap) --- */
-.card {
-  display: grid;
-  grid-template-columns: 1fr 140px;
-  column-gap: 16px;
-  align-items: start;
-}
-
-/* Put all normal card content in the left column */
-.card .product-name,
-.card .desc,
-.card .meta-row,
-.card .btn {
-  grid-column: 1;
-}
-
-/* Image goes in the right column and spans full card height */
-.card-image {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  width: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-image img {
-  width: 150px !important;
-  height: 150px !important;
-  max-width: 150px !important;
-  max-height: 150px !important;
-  object-fit: cover !important;
-  display: block !important;
-}
-
 /* Mobile: stack image under text */
 @media (max-width: 650px) {
   .card {
@@ -493,21 +453,24 @@ body.cart-open{ overflow:hidden; }
     grid-column: 1;
     grid-row: auto;
     width: 100%;
+    height: 220px;
     justify-content: center;
+    overflow: visible;
   }
 
   .card-image img {
-    width: 160px !important;
-    height: 160px !important;
-    max-width: 160px !important;
-    max-height: 160px !important;
+    width: auto;
+    height: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    transform: none;
   }
 }
 
 
 
 /* =========================================================
-   INFO PAGES — REALISTIC TORN PAPER (NOISE MASK)
+   INFO PAGES â€“ REALISTIC TORN PAPER (NOISE MASK)
    ========================================================= */
 
 .info-page {
@@ -535,7 +498,7 @@ body.cart-open{ overflow:hidden; }
   z-index: 2;
 }
 
-/* Use a “torn” mask made from SVG noise (embedded, no file needed) */
+/* Use a â€œtornâ€ mask made from SVG noise (embedded, no file needed) */
 .paper::before,
 .paper::after {
   content: "";
@@ -587,7 +550,7 @@ body.cart-open{ overflow:hidden; }
 }
 
 /* ===============================
-   PRODUCT CARDS — PREMIUM POLISH
+   PRODUCT CARDS â€“ PREMIUM POLISH
    =============================== */
 
 .card {
@@ -659,7 +622,7 @@ body.cart-open{ overflow:hidden; }
 
 
 /* ===============================
-   FOOTER — POLISH + FINISHED LOOK
+   FOOTER â€“ POLISH + FINISHED LOOK
    =============================== */
 
 .site-footer{
@@ -738,7 +701,7 @@ body.cart-open{ overflow:hidden; }
 
 
 /* ===============================
-   CART PANEL — POLISH + HIERARCHY
+   CART PANEL â€“ POLISH + HIERARCHY
    =============================== */
 
 /* Make the overlay feel softer */
@@ -763,7 +726,7 @@ body.cart-open{ overflow:hidden; }
   margin: 0;
 }
 
-/* Items: less “listy”, more “receipt” */
+/* Items: less â€œlistyâ€, more â€œreceiptâ€ */
 .cart-items {
   padding: 16px 18px;
 }
@@ -821,7 +784,7 @@ body.cart-open{ overflow:hidden; }
 }
 
 /* ===============================
-   CART TOTAL — TIGHTER ALIGNMENT
+   CART TOTAL â€“ TIGHTER ALIGNMENT
    =============================== */
 
 .cart-total {
@@ -895,7 +858,7 @@ body.cart-open{ overflow:hidden; }
 }
 
 .cart-total::after {
-  content: "Secure checkout • Encrypted payment";
+  content: "Secure checkout - Encrypted payment";
   display: block;
   width: 100%;
   margin-top: 4px;
