@@ -211,7 +211,7 @@ body.cart-open{ overflow:hidden; }
   
   /* Grid layout: left column for text, right column for image */
   display: grid;
-  grid-template-columns: 1fr 180px;
+  grid-template-columns: 1fr 160px;
   grid-template-rows: auto auto auto auto auto;
   column-gap: 18px;
   row-gap: 8px;
