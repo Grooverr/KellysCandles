@@ -867,9 +867,39 @@ body.cart-open{ overflow:hidden; }
   color: rgba(59,47,47,0.65);
   letter-spacing: 0.2px;
 }
+
+
 /* ===============================
-   FAQ SECTION
+   ABOUT SECTION IMAGE
    =============================== */
+
+.about-paper {
+  overflow: hidden;
+  border: 4px solid #8B5E3C;
+  box-shadow:
+    0 0 0 2px #C49A6C,
+    0 0 0 5px #6B3F1F,
+    0 0 0 7px #D4A96A,
+    0 12px 32px rgba(101, 60, 20, 0.25);
+  border-radius: 12px;
+}
+
+.about-image {
+  float: right;
+  width: 260px;
+  margin: 0 0 16px 28px;
+  object-fit: contain;
+}
+
+@media (max-width: 600px) {
+  .about-image {
+    float: none;
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 20px;
+  }
+}
 
 .faq {
   padding: 3rem 0;
