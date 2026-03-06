@@ -5,12 +5,15 @@
 */
 
 :root {
-  --cream: #f6efe6;
-  --tan: #d8c5a5;
-  --soft-brown: #8b5a2b;
-  --wood: #b88a56;
-  --muted-green: #7a8d79;
-  --text: #3b2f2f;
+  --cream: #F5F2EE;
+  --tan: #B5A898;
+  --soft-brown: #2C2420;
+  --wood: #2C2420;
+  --muted-green: #80917B;
+  --text: #1C1C1A;
+  --card-bg: #B5A898;
+  --card-text: #1C1C1A;
+  --card-meta: #3D3530;
   --site-title-size: 26px;
   --announce-height: 48px;
 }
@@ -550,67 +553,67 @@ body.cart-open{ overflow:hidden; }
 }
 
 /* ===============================
-   PRODUCT CARDS â€“ PREMIUM POLISH
+   PRODUCT CARDS - DARK SLATE
    =============================== */
 
 .card {
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.98),
-    rgba(252,248,242,0.96)
-  );
-  border: 1px solid rgba(0,0,0,0.06);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,0,0,0.10) 0%, transparent 50%),
+    linear-gradient(135deg, #A89888 0%, #B5A898 40%, #A89080 70%, #9E8878 100%);
+  border: 1px solid rgba(0,0,0,0.10);
   border-radius: 14px;
   padding: 18px;
-  box-shadow:
-    0 4px 14px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.14);
   transition:
     transform 160ms ease,
     box-shadow 160ms ease;
 }
 
-/* Gentle lift on hover */
 .card:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 10px 28px rgba(0,0,0,0.12);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.28);
 }
 
-/* Product name: stronger anchor */
 .card .product-name {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 4px;
-  color: var(--soft-brown);
+  color: var(--card-text);
 }
 
-/* Descriptions: softer + tighter */
 .card .desc {
   font-size: 14px;
   line-height: 1.45;
-  color: rgba(59,47,47,0.85);
+  color: var(--card-meta);
 }
 
-/* Meta row spacing */
 .card .meta-row {
   margin-top: 6px;
   margin-bottom: 2px;
+  color: var(--card-meta);
 }
 
-/* Price: make it feel important */
 .card .price {
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.2px;
+  color: var(--card-text);
 }
 
-/* Button alignment + spacing */
 .card button.add-to-cart {
   margin-top: 10px;
   border-radius: 8px;
+  background: #1C1C1A;
+  color: #F0EDE8;
+  font-weight: 700;
+  border: none;
 }
 
-/* Mobile: slightly tighter */
+.card button.add-to-cart:hover {
+  background: #3a3a38;
+}
+
 @media (max-width: 650px) {
   .card {
     padding: 16px;
@@ -868,6 +871,40 @@ body.cart-open{ overflow:hidden; }
   letter-spacing: 0.2px;
 }
 
+
+/* ===============================
+   CLASSICAL SECTION DIVIDER
+   =============================== */
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 12px 0;
+  max-width: 480px;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(120, 95, 70, 0.35) 30%,
+    rgba(120, 95, 70, 0.35) 70%,
+    transparent
+  );
+}
+
+.divider-ornament {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 10px;
+  color: rgba(120, 95, 70, 0.55);
+  letter-spacing: 8px;
+  white-space: nowrap;
+  padding: 0 4px;
+}
 
 /* ===============================
    ABOUT SECTION IMAGE
