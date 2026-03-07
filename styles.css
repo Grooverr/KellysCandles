@@ -933,7 +933,6 @@ body.cart-open{ overflow:hidden; }
 
 .faq {
   padding: 3rem 0;
-  background: var(--cream, #f9f4ed);
 }
 
 .faq h2 {
