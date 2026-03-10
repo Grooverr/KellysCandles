@@ -11,23 +11,18 @@
   try { localStorage.removeItem('checkoutInProgress'); } catch(e) {}
 </script>
 <body>
-  <div class="announcement">No worries — you weren't charged</div>
-
   <header class="site-header">
     <div class="container header-inner">
       <div class="brand">
         <h1 class="site-title">Kelley's Candles</h1>
-        <p class="tagline">Hand-Poured Farm Candles</p>
       </div>
       <nav class="nav">
-        <div class="nav-logo">
-          <img src="Images/Logo.png" alt="Kelley's Candles logo" class="site-logo">
-        </div>
-        <div class="nav-links">
-          <a href="index.html">Home</a>
-          <a href="index.html#inventory-area">Products</a>
-          <a href="candle-care.html">Candle Care &amp; Safety</a>
-        </div>
+        <a href="/" class="logo-link nav-logo">
+          <img src="/images/logo.png" alt="Kelley's Candles logo" class="site-logo">
+        </a>
+        <a href="index.html">Home</a>
+        <a href="index.html#inventory-area">Products</a>
+        <a href="candle-care.html">Candle Care &amp; Safety</a>
       </nav>
     </div>
   </header>
@@ -36,7 +31,7 @@
     <section class="thank-you">
       <div class="thank-you-card">
         <h2>Payment canceled</h2>
-        <p>No worries — you weren't charged.</p>
+        <p>No worries - you weren't charged.</p>
         <p>You can return to your cart and try again anytime.</p>
         <div class="thank-you-actions">
           <a href="index.html#cart-panel">Return to Cart</a>
@@ -48,11 +43,16 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>&copy; <span id="year"></span> Kelley's Candles — Handmade on the farm</p>
+      <p>&copy; <span id="year"></span> Kelley's Candles - Handmade on the farm</p>
       <div class="footer-links">
         <a href="privacy.html" class="privacy-link">Privacy Policy</a>
         <a href="candle-care.html" class="care-link">Candle Care &amp; Safety</a>
         <a href="terms.html" class="care-link">Terms of Service</a>
+      </div>
+      <div class="footer-review">
+        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>Enjoyed your candles? Let us know!</p>
+        <a href="https://g.page/r/CdB9KRJC1eVMECA/review" target="_blank" rel="noopener" class="review-btn">Leave a Google Review</a>
       </div>
     </div>
   </footer>

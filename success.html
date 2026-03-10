@@ -1,13 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-
   <!-- API base for Vercel serverless routes -->
   <script>
     window.API_BASE = "https://kellyscandles-vercel.vercel.app";
   </script>
 
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Thank You | Kelley's Candles</title>
 
@@ -45,7 +44,7 @@
   <main class="container">
     <section class="thank-you">
       <div class="thank-you-card">
-        <h2>Order confirmed ✅</h2>
+        <h2>Order confirmed âœ…</h2>
 
         <p>
           Thank you for your purchase! We received your order and will start preparing it for shipment.
@@ -56,19 +55,19 @@
         </p>
 
         <p style="margin-top: 12px;">
-          You’ll receive a confirmation email shortly with your order summary and shipping details.
+          You'll receive a confirmation email shortly with your order summary and shipping details.
         </p>
 
         <p style="margin-top: 12px;">
           <strong>What happens next:</strong><br>
-          • We’ll begin preparing your candles for shipment.<br>
-          • When your order ships, you’ll receive an update (and tracking if available).<br>
-          • Need to fix your shipping address? Reply to your confirmation email as soon as possible.
+          - We'll begin preparing your candles for shipment.<br>
+          - When your order ships, you'll receive an update (and tracking if available).<br>
+          - Need to fix your shipping address? Reply to your confirmation email as soon as possible.
         </p>
 
         <!-- Order details (pulled from Vercel API) -->
         <div id="order-details" style="margin-top:16px;">
-          <p id="order-details-status">Loading order details…</p>
+          <p id="order-details-status">Loading order details...</p>
         </div>
 
         <div class="thank-you-actions">
@@ -81,11 +80,16 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>&copy; <span id="year"></span> Kelley's Candles — Handmade on the farm</p>
+      <p>&copy; <span id="year"></span> Kelley's Candles - Handmade on the farm</p>
       <div class="footer-links">
         <a href="privacy.html" class="privacy-link">Privacy Policy</a>
         <a href="candle-care.html" class="care-link">Candle Care &amp; Safety</a>
         <a href="terms.html" class="care-link">Terms of Service</a>
+      </div>
+      <div class="footer-review">
+        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>Enjoyed your candles? Let us know!</p>
+        <a href="https://g.page/r/CdB9KRJC1eVMECA/review" target="_blank" rel="noopener" class="review-btn">Leave a Google Review</a>
       </div>
     </div>
   </footer>
@@ -194,7 +198,7 @@
         const itemsRows = (items || []).map((it) => {
           const desc = escapeHtml(it.description || it.name || "Item");
           const qty = Number(it.quantity ?? 1);
-          const unit = (it.unit_amount != null) ? moneyPretty(it.unit_amount, currency) : "—";
+          const unit = (it.unit_amount != null) ? moneyPretty(it.unit_amount, currency) : "-";
           const line = moneyPretty(it.amount_subtotal ?? 0, currency);
 
           return `
